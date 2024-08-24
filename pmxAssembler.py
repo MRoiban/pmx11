@@ -1,0 +1,135 @@
+assembly_to_opcode = {
+    "HALT": "0x00",
+    "LOAD": {"R1": "0x01", "R2": "0x02", "R3": "0x03", "R4": "0x04","R5": "0x05","R6": "0x06","R7": "0x07","R8": "0x08"},
+    "ADD": "0x09",
+    "SUB": "0x0A",
+    "PUSH": "0x0B",
+    "POP": "0x0C",
+    "EQUAL": "0x0D",
+    "GTH": "0x0E",
+    "LTH": "0x0F",
+    "DUP": "0x10",
+    "STR": '0xAA',
+    "POT": "0x11",
+    "OVR": "0x12",
+    "INC": "0x13",
+    "DCR": "0x14",
+    "DVO": "0xAF",
+    "DVW": "0xBF",
+    "SWAP": "0xCF",
+    "GOTO": "0xDE",
+    "JMP": "0xDF",
+    "JNZ": "0xEF",
+    "RMV": "0xEE",
+    "RPC": "0xFE",
+    "RET": "0xFF",
+}
+
+
+def assemble(asm_file, rom_file):
+    with open(asm_file, "r") as file:
+        lines = file.readlines()
+    program = []
+    variables = {}
+    for line in lines:
+        # print(line,len(line))
+        if len(line) <= 0:
+            continue
+        
+        parts = line.strip().split()
+        # print(parts)
+        for i in range(len(parts)):
+            if "," in parts[i]:
+                parts[i] = parts[i].split(",")[0]
+        instruction = parts[0] if parts != [] else None
+        # instruction = None if instruction == ';' else instruction
+        if instruction != None:
+            if ';' in instruction:
+                instruction = None
+
+        if instruction in ["LOAD", "PUSH", "POP", "SWAP", "DVW", "POT", 'DVO', 'VAR', 'LABEL', 'GOTO', "CALL"]:
+            if instruction == "LOAD":
+                opcode = assembly_to_opcode[instruction][parts[1]]
+                if not(parts[2] in variables) and not('0x' in parts[2]):
+                    operand = int(parts[2].replace("#", ""))
+                else:
+                    ost = []
+                    vst = []
+                    size = len(parts)
+                    # print(size)
+                    operand = variables[parts[2]] if not('0x' in parts[2]) else parts[2]
+                    if size > 3:
+                        for i in range(1,size-2):
+                            # print(parts[2+i])
+                            if '-' in parts[2+i]:
+                                ost.append('-')
+                            elif '+' in parts[2+i]:
+                                ost.append('+')
+                            else:
+                                vst.append(int(parts[2+i]))
+                        
+                        # print(ost)
+                        # print(vst)
+                        ost_len = len(ost)
+                        for i in range(ost_len):
+                            a = vst.pop()
+                            op = ost.pop()
+                            if '-' in op:
+                                operand -= a
+                            elif '+' in op:
+                                operand += a
+                program.append(opcode)
+                program.append(str(operand))
+            elif instruction == 'VAR':
+                var = parts[1]
+                value = int(parts[2].replace("#", ""))
+                variables[var] = value
+            elif instruction == 'CALL':
+                reg = parts[1]
+                program.append("0x11")
+                program.append(reg)
+                program.append("0xDE")
+                
+            elif instruction == 'GOTO':
+                operand = parts[1]
+                program.append(assembly_to_opcode[instruction])
+                program.append(str(operand))
+            elif instruction == 'LABEL':
+                var = parts[1]
+                # print(var)
+                variables[var] = len(program)
+            elif instruction in ["PUSH", "POP", "DVW", "POT",'DVO']:
+                reg = parts[1]
+                if not(reg in variables):
+                    reg_num = reg.replace("R", "") if "R" in reg else reg.replace("#", "")
+                elif '@' in reg:
+                    reg_num = reg
+                elif '0x' in reg:
+                    reg_num = reg
+                else:
+                    reg_num = variables[reg]
+                
+                program.append(assembly_to_opcode[instruction])
+                program.append(reg_num)
+            elif instruction in ["SWAP"]:
+                reg1 = parts[1].replace("R", "")
+                reg2 = parts[2].replace("R", "")
+                program.append(assembly_to_opcode[instruction])
+                program.append(reg1)
+                program.append(reg2)
+        else:
+            if instruction in assembly_to_opcode:
+                program.append(assembly_to_opcode[instruction])
+
+    for i in range(len(program)):
+        # print(program[i])
+        if "@" in str(program[i]):
+            program[i] = str(variables[program[i]])
+        else:
+            program[i] = str(program[i])
+            
+    with open(rom_file, "w") as file:
+        # print(len(program))
+        file.write(",".join(program))
+
+
