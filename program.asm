@@ -1,0 +1,5 @@
+LOAD R5, #40
+LOAD R4, #99
+POT #55
+ADD
+HALT
