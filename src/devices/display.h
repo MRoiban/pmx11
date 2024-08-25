@@ -4,6 +4,11 @@
 #define PMX_DISPLAY
 
 
+typedef struct AlphabetMapping {
+    Uint32 hex;
+    char *UpLetter;
+} AlphabetMapping;
+
 typedef struct ColorMapping {
     const char *color;
     Uint32 hex;
@@ -20,5 +25,6 @@ typedef struct PMXDisplay {
 extern PMXDisplay pmx_display;
 void initDisplay(int w, int h, Uint32 bg);
 void display_update(); 
+void display_deo(PMX *pmx, Uint8 addr);
 
 #endif 

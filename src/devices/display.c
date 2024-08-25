@@ -8,7 +8,7 @@
 
 
 enum ALPHABET_ENUM {
-    A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z
+    SPACE, A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z
 };
 
 
@@ -19,17 +19,47 @@ struct alphabet {
     int width;
     } 
     alphabet = {
-        .bitmap = 
-        {
-            "0111011110011101111011111111110111110001111111111110001100001101111001011101111001110111101111111111100011000110001100011000111111",
-            "1000110001100011000110000100001000010001001000001010010100001010110101100011000110001100011000000100100011000110001010100101000001",
-            "1111111110100001000111110111101001111111001000001011100100001000110101100011111010101111101111100100100011000110001001000010001110",
-            "1000110001100011000110000100001000110001001000001010010100001000110101100011000010010100010000100100100010101010101010100010010000",
-            "1000111110011101111011111100000111110001111111110010001111111000110011011101000001101100011111100100111110010011011100010010011111",
+        .bitmap = {
+            "000000111011110011101111011111111110111110001111111111110001100001101111001011101111001110111101111111111100011000110001100011000111111",
+            "000001000110001100011000110000100001000010001001000001010010100001010110101100011000110001100011000000100100011000110001010100101000001",
+            "000001111111110100001000111110111101001111111001000001011100100001000110101100011111010101111101111100100100011000110001001000010001110",
+            "000001000110001100011000110000100001000110001001000001010010100001000110101100011000010010100010000100100100010101010101010100010010000",
+            "000001000111110011101111011111100000111110001111111110010001111111000110011011101000001101100011111100100111110010011011100010010011111",
         },
         .height = 5,
         .width = 130,
     };
+
+#define ALPHABET_NUMBER 27
+const AlphabetMapping alphabet_map[ALPHABET_NUMBER] = {
+    {0x00, " "},
+    {0x01, "A"},
+    {0x02, "B"},
+    {0x03, "C"},
+    {0x04, "D"},
+    {0x05, "E"},
+    {0x06, "F"},
+    {0x07, "G"},
+    {0x08, "H"},
+    {0x09, "I"},
+    {0x0A, "J"},
+    {0x0B, "K"},
+    {0x0C, "L"},
+    {0x0D, "M"},
+    {0x0E, "N"},
+    {0x0F, "O"},
+    {0x10, "P"},
+    {0x11, "Q"},
+    {0x12, "R"},
+    {0x13, "S"},
+    {0x14, "T"},
+    {0x15, "U"},
+    {0x17, "V"},
+    {0x18, "W"},
+    {0x19, "X"},
+    {0x1A, "Y"},
+    {0x1B, "Z"},
+};
 
 #define COLORS 7 
 const ColorMapping colors_map[COLORS] = {
@@ -107,8 +137,14 @@ getAlphabetIndex(char letter) {
 
 void
 drawString(char string[], int x, int y, int scale, Uint32 color) {
+    int index;
     for (int i = 0; i < strlen(string);i++) {
-        int index = getAlphabetIndex(string[i]);
+        if (string[i] == ' '){
+            index = 0;
+        }
+        else {
+            index = getAlphabetIndex(string[i])+1; //+1 because i've assigned 0 to space!
+        }
         drawChar(index, x, y, scale, color);
         x+=6;
     }
@@ -126,7 +162,7 @@ initDisplay(int w, int h, Uint32 bg) {
     }
 
     
-    drawString("START", 0, 0, 4, colors_map[2].hex);
+    // drawString("PMX VIRTUAL MACHINE", 0, 0, 5, colors_map[2].hex);
 
     // Create a window
     window = SDL_CreateWindow("PMX Virtual Machine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, pmx_display.width, pmx_display.height, SDL_WINDOW_SHOWN);
@@ -162,4 +198,48 @@ display_update() {
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
+}
+
+void 
+drawChar_mem(PMX *pmx){
+    int index;
+    int scale=5;
+    int x=1;
+    int y=1;
+    Uint32 color = colors_map[2].hex;
+    int new_line = pmx_display.width/scale;
+    char *c;
+    int packed = 0xC3758; // The hexadecimal value representing 800 and 600
+
+    // Extracting the coordinates
+    
+    
+
+
+    for (int addr = DISPLAY_BLOCK; addr < DISPLAY_BLOCK + (DISPLAY_SIZE/scale);){
+        for (int i=0; i<ALPHABET_NUMBER;i++){
+           if (alphabet_map[i].hex == pmx->memory[addr]) c = alphabet_map[i].UpLetter;
+           if (pmx->memory[addr] == 0) break;
+        }
+        x = pmx->memory[addr+1];
+        y = pmx->memory[addr+2];
+        printf("x: %d | y: %d\n", x, y);
+        index = getAlphabetIndex(*c)+1;
+        drawChar(index, x, y, scale, color);
+        addr += 3;
+    }
+}
+
+void 
+display_deo(PMX *pmx, Uint8 addr) {
+    // printf("dev: %d\n", pmx->dev[addr]);
+    // printf("deo addr: %d\n", pmx->dev[addr]);
+    switch (addr)
+    {
+    case 0x10: break;
+    case 0x11: break;
+    case 0x12: drawChar_mem(pmx); break;
+    default:
+        break;
+    }
 }

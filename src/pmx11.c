@@ -4,6 +4,22 @@
 #include "./pmx.h"
 #include "./devices/display.h"
 
+void emu_deo(PMX *pmx, Uint32 addr) {
+    addr = 0x12;
+    Uint8 lv = (addr >> 4) & 0x0F;
+    // printf("dev: %d\n", pmx->dev[addr]);
+    // Uint32 port = pmx->dev[component];
+    switch (lv)
+    {
+        case 0x00: break;
+        case 0x01: display_deo(pmx,addr); break;
+    
+    default:
+        break;
+    }
+}
+
+
 void
 emu_run(PMX *pmx) {
     SDL_Event e;
@@ -19,6 +35,7 @@ emu_run(PMX *pmx) {
         while (SDL_PollEvent(&e)) {if (e.type == SDL_QUIT) quit = 1;}
         run(pmx); 
         display_update();
+        emu_deo(pmx, 0x12);
         pmx->time++;
         // printf("time: %d\n", pmx->time);
     }
