@@ -217,7 +217,8 @@ drawChar_mem(PMX *pmx){
 
 
     for (int addr = DISPLAY_BLOCK; addr < DISPLAY_BLOCK + (DISPLAY_SIZE/scale);){
-        for (int i=0; i<ALPHABET_NUMBER;i++){
+        if (pmx->memory[addr] != 0) {
+            for (int i=0; i<ALPHABET_NUMBER;i++){
            if (alphabet_map[i].hex == pmx->memory[addr]) c = alphabet_map[i].UpLetter;
            if (pmx->memory[addr] == 0) break;
         }
@@ -227,6 +228,10 @@ drawChar_mem(PMX *pmx){
         index = getAlphabetIndex(*c)+1;
         drawChar(index, x, y, scale, color);
         addr += 3;
+        }
+        else{
+            addr++;
+        }
     }
 }
 
