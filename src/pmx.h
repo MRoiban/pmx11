@@ -3,6 +3,8 @@
 
 #define MEMORY_SIZE (1024 * 64 * 10) // 10 KB memory
 #define REGISTER_NUMBER (8)
+#define DISPLAY_SIZE (480000)
+#define DISPLAY_BLOCK (MEMORY_SIZE - DISPLAY_SIZE)
 
 typedef unsigned char Uint8;
 typedef signed char Sint8;
@@ -11,9 +13,9 @@ typedef signed short Sint16;
 typedef unsigned int Uint32;
 
 typedef struct {
-    unsigned char *memory;
-    unsigned char *wst;  // Stack
-    unsigned char *rst;  // Stack
+    unsigned int *memory;
+    unsigned int *wst;  // Stack
+    unsigned int *rst;  // Stack
     int sp;
     int rp;
     int pc;
@@ -45,7 +47,7 @@ void increase(PMX *pmx);
 void decrease(PMX *pmx);
 void remove_top_of_stack(PMX *pmx);
 void dev_write(PMX *pmx, int addr);
-void put_on_top_of_stack(PMX *pmx, int value);
+void put_on_top_of_stack(PMX *pmx, unsigned int value);
 void goto_instruction(PMX *pmx);
 void power(PMX *pmx);
 void sqrt_instruction(PMX *pmx);

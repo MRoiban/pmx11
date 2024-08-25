@@ -11,15 +11,15 @@ init_pmx(PMX *pmx) {
         fprintf(stderr, "Error: PMX pointer is NULL\n");
         return;
     }
-
-    pmx->memory = malloc(MEMORY_SIZE);
-    pmx->wst = malloc(MEMORY_SIZE);
-    pmx->rst = malloc(MEMORY_SIZE);
+    pmx->memory = malloc(MEMORY_SIZE * sizeof(unsigned int));
+    pmx->wst = malloc(MEMORY_SIZE * sizeof(unsigned int));
+    pmx->rst = malloc(MEMORY_SIZE * sizeof(unsigned int));
     for (int i = 0; i < MEMORY_SIZE; i++) {
         pmx->memory[i] = 0;
         pmx->wst[i] = 0;
         pmx->rst[i] = 0;
     }
+    printf("hey");
     for (int i = 0; i < REGISTER_NUMBER; i++) {
         pmx->registers[i] = 0;
     }
@@ -32,7 +32,9 @@ init_pmx(PMX *pmx) {
 void 
 load_program(PMX *pmx, int *program, int length) {
     for (int i = 0; i < length; i++) {
+        // printf("load: %d\n", program[i]);
         pmx->memory[i] = program[i];
+        // printf("loadmem: %d\n", pmx->memory[i]);
     }
 }
 
@@ -168,6 +170,8 @@ swap(PMX *pmx) {
     pmx->pc += 3;
 }
 
+
+// TODO: Move to console.c
 void 
 console_deo(PMX *pmx, int addr) {
     if (addr == 24) {
@@ -196,6 +200,7 @@ remove_top_of_stack(PMX *pmx) {
     pmx->pc += 1;
 }
 
+// TODO: Move to console.c
 void 
 dev_write(PMX *pmx, int addr) {
     pmx->dev[addr] = pmx->wst[pmx->sp--];
@@ -203,7 +208,8 @@ dev_write(PMX *pmx, int addr) {
 }
 
 void 
-put_on_top_of_stack(PMX *pmx, int value) {
+put_on_top_of_stack(PMX *pmx, unsigned int value) {
+    printf("num: %d\n", value);
     pmx->wst[++pmx->sp] = value;
     pmx->pc += 2;
 }
@@ -241,9 +247,10 @@ abs_instruction(PMX *pmx) {
 
 void 
 store(PMX *pmx) {
-    int addr = pmx->wst[pmx->sp--];
+    unsigned int addr = pmx->wst[pmx->sp--];
     int value = pmx->wst[pmx->sp--];
     pmx->memory[addr] = value;
+    printf("in mem: %d | addr: %d\n", pmx->memory[addr], addr);
     pmx->pc += 1;
 }
 
@@ -336,7 +343,7 @@ ret(PMX *pmx) {
 void 
 run(PMX *pmx) {
     int running = 1;
-    FILE *file = fopen("./log.txt", "w");
+    FILE *file = fopen("./log.txt", "a");
     if (file == NULL) {
         // Handle file open error
         perror("Error opening file");
@@ -394,6 +401,7 @@ run(PMX *pmx) {
 void 
 load_program_from_file(PMX *pmx, const char *filename) {
     // Open the file
+    
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
         printf("Failed to open file: %s\n", filename);
