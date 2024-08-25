@@ -32,9 +32,9 @@ init_pmx(PMX *pmx) {
 void 
 load_program(PMX *pmx, int *program, int length) {
     for (int i = 0; i < length; i++) {
-        // printf("load: %d\n", program[i]);
+        printf("load: %d\n", program[i]);
         pmx->memory[i] = program[i];
-        // printf("loadmem: %d\n", pmx->memory[i]);
+        printf("loadmem: %d\n", pmx->memory[i]);
     }
 }
 
@@ -76,7 +76,6 @@ duplicate(PMX *pmx) {
 }
 
 void 
-
 load(PMX *pmx, int reg, int value) {
     if (reg >= 1 && reg <= REGISTER_NUMBER) {
         pmx->registers[reg - 1] = value;
@@ -209,7 +208,8 @@ dev_write(PMX *pmx, int addr) {
 
 void 
 put_on_top_of_stack(PMX *pmx, unsigned int value) {
-    printf("num: %d\n", value);
+    printf("value: %d | memory: %d\n", value , pmx->memory[pmx->pc + 2]);
+    // printf("memory: %d\n", pmx->memory[pmx->pc + 1]);
     pmx->wst[++pmx->sp] = value;
     pmx->pc += 2;
 }
@@ -397,7 +397,7 @@ run(PMX *pmx) {
 }
 
 #define MAX_PROGRAM_SIZE 1000
-#define MAX_LINE_LENGTH 100
+#define MAX_LINE_LENGTH 200
 void 
 load_program_from_file(PMX *pmx, const char *filename) {
     // Open the file
@@ -417,9 +417,11 @@ load_program_from_file(PMX *pmx, const char *filename) {
         char *token = strtok(line, ",");
         while (token != NULL) {
             int value;
+            printf("strtoken: %s\n", token);
             // Check if the token starts with '0x' for hexadecimal values
             if (strncmp(token, "0x", 2) == 0) {
                 sscanf(token, "%x", &value);
+                printf("hex-token: %x\n", value);
             } else {
                 sscanf(token, "%d", &value);
             }
