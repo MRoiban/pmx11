@@ -8,6 +8,7 @@ OBJS = pmx.o display.o pmx11.o
 all: $(EXE)
 
 $(EXE): $(OBJS)
+	py ./assemble.py
 	$(CC) $(OBJS) $(SDL) -o $(EXE)
 
 pmx.o: ./src/pmx.c ./src/pmx.h
