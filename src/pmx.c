@@ -19,7 +19,7 @@ init_pmx(PMX *pmx) {
         pmx->wst[i] = 0;
         pmx->rst[i] = 0;
     }
-    printf("hey");
+    
     for (int i = 0; i < REGISTER_NUMBER; i++) {
         pmx->registers[i] = 0;
     }
@@ -32,9 +32,7 @@ init_pmx(PMX *pmx) {
 void 
 load_program(PMX *pmx, int *program, int length) {
     for (int i = 0; i < length; i++) {
-        printf("load: %d\n", program[i]);
         pmx->memory[i] = program[i];
-        printf("loadmem: %d\n", pmx->memory[i]);
     }
 }
 
@@ -91,9 +89,7 @@ read_pc(PMX *pmx) {
 
 void 
 push(PMX *pmx, int reg) {
-    printf("Push R#: %d\n", reg);
     if (reg >= 1 && reg <= REGISTER_NUMBER) {
-        printf("REG: %d", pmx->registers[reg - 1]);
         pmx->wst[++pmx->sp] = pmx->registers[reg - 1];
     }
     pmx->pc += 2;
@@ -114,7 +110,6 @@ int halt(PMX *pmx, int running) {
 
 void 
 jump(PMX *pmx) {
-    printf("jmp: %d\n", pmx->wst[pmx->sp]);
     pmx->pc = pmx->wst[pmx->sp--];
 }
 
@@ -208,7 +203,7 @@ dev_write(PMX *pmx, int addr) {
 
 void 
 put_on_top_of_stack(PMX *pmx, unsigned int value) {
-    printf("value: %d | memory: %d\n", value , pmx->memory[pmx->pc + 2]);
+    // printf("value: %d | memory: %d\n", value , pmx->memory[pmx->pc + 2]);
     // printf("memory: %d\n", pmx->memory[pmx->pc + 1]);
     pmx->wst[++pmx->sp] = value;
     pmx->pc += 2;
@@ -250,7 +245,7 @@ store(PMX *pmx) {
     unsigned int addr = pmx->wst[pmx->sp--];
     int value = pmx->wst[pmx->sp--];
     pmx->memory[addr] = value;
-    printf("in mem: %d | addr: %d\n", pmx->memory[addr], addr);
+    // printf("in mem: %d | addr: %d\n", pmx->memory[addr], addr);
     pmx->pc += 1;
 }
 
@@ -417,11 +412,11 @@ load_program_from_file(PMX *pmx, const char *filename) {
         char *token = strtok(line, ",");
         while (token != NULL) {
             int value;
-            printf("strtoken: %s\n", token);
+            // printf("strtoken: %s\n", token);
             // Check if the token starts with '0x' for hexadecimal values
             if (strncmp(token, "0x", 2) == 0) {
                 sscanf(token, "%x", &value);
-                printf("hex-token: %x\n", value);
+                // printf("hex-token: %x\n", value);
             } else {
                 sscanf(token, "%d", &value);
             }
