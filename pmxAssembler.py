@@ -25,8 +25,39 @@ assembly_to_opcode = {
     "RET": "0xFF",
 }
 
+char_to_hex = {
+    " ": "0x00",
+    "A": "0x01",
+    "B": "0x02",
+    "C": "0x03",
+    "D": "0x04",
+    "E": "0x05",
+    "F": "0x06",
+    "G": "0x07",
+    "H": "0x08",
+    "I": "0x09",
+    "J": "0x0A",
+    "K": "0x0B",
+    "L": "0x0C",
+    "M": "0x0D",
+    "N": "0x0E",
+    "O": "0x0F",
+    "P": "0x10",
+    "Q": "0x11",
+    "R": "0x12",
+    "S": "0x13",
+    "T": "0x14",
+    "U": "0x15",
+    "V": "0x17",
+    "W": "0x18",
+    "X": "0x19",
+    "Y": "0x1A",
+    "Z": "0x1B"
+}
+
 
 def assemble(asm_file, rom_file):
+    display_addr = 0x2AD00
     with open(asm_file, "r") as file:
         lines = file.readlines()
     program = []
@@ -44,10 +75,10 @@ def assemble(asm_file, rom_file):
         instruction = parts[0] if parts != [] else None
         # instruction = None if instruction == ';' else instruction
         if instruction != None:
-            if ';' in instruction:
+            if '//' in instruction:
                 instruction = None
 
-        if instruction in ["LOAD", "PUSH", "POP", "SWAP", "DVW", "POT", 'DVO', 'VAR', 'LABEL', 'GOTO', "CALL"]:
+        if instruction in ["LOAD", "PUSH", "POP", "SWAP", "DVW", "POT", 'DVO', 'VAR', 'LABEL', 'GOTO', "CALL", "WCHR", "WSTR"]:
             if instruction == "LOAD":
                 opcode = assembly_to_opcode[instruction][parts[1]]
                 if not(parts[2] in variables) and not('0x' in parts[2]):
@@ -98,6 +129,48 @@ def assemble(asm_file, rom_file):
                 var = parts[1]
                 # print(var)
                 variables[var] = len(program)
+            elif instruction == 'WCHR':
+                char = parts[1]
+                char_hex = char_to_hex[char]
+                x = parts[2].replace("#", "")
+                y = parts[3].replace("#", "") 
+                scale = parts[4].replace("#", "")
+                color = parts[5]
+                program.append(assembly_to_opcode["POT"])
+                program.append(char_hex)
+                program.append(assembly_to_opcode["POT"])
+                program.append(display_addr)
+                display_addr += 1
+                program.append(assembly_to_opcode["STR"])
+                
+                program.append(assembly_to_opcode["POT"])
+                program.append(x)
+                program.append(assembly_to_opcode["POT"])
+                program.append(display_addr)
+                display_addr += 1
+                program.append(assembly_to_opcode["STR"])
+                
+                program.append(assembly_to_opcode["POT"])
+                program.append(y)
+                program.append(assembly_to_opcode["POT"])
+                program.append(display_addr)
+                display_addr += 1
+                program.append(assembly_to_opcode["STR"])
+                
+                program.append(assembly_to_opcode["POT"])
+                program.append(scale)
+                program.append(assembly_to_opcode["POT"])
+                program.append(display_addr)
+                display_addr += 1
+                program.append(assembly_to_opcode["STR"])
+                
+                program.append(assembly_to_opcode["POT"])
+                program.append(color)
+                program.append(assembly_to_opcode["POT"])
+                program.append(display_addr)
+                display_addr += 1
+                program.append(assembly_to_opcode["STR"])
+                
             elif instruction in ["PUSH", "POP", "DVW", "POT",'DVO']:
                 reg = parts[1]
                 if not(reg in variables):
