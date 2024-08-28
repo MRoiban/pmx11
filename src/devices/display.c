@@ -13,6 +13,7 @@ enum ALPHABET_ENUM {
 
 
 
+
 struct alphabet {
     const char* bitmap[5];
     int height;
@@ -105,6 +106,16 @@ drawPixel(int x, int y, int scale, Uint32 color) {
 }
 
 void 
+drawRect(int x, int y, int width, int height, int scale, Uint32 color) {
+    for (int i = 0; i<width; i++) {
+        for (int j = 0; j<height; j++) {
+            drawPixel(x+i, y+j,scale,color);
+        }
+    }
+}
+
+
+void 
 drawBitmap(int i, int j, 
            int index, int width, 
            const char* bitmap[], 
@@ -188,50 +199,42 @@ initDisplay(int w, int h, Uint32 bg) {
         SDL_DestroyWindow(window);
         SDL_Quit();
     }
-
+    
 }
 
 void 
 display_update() {
     SDL_UpdateTexture(texture, NULL, pmx_display.pixels, SCREEN_WIDTH * sizeof(Uint16));
-    // Clear the renderer, copy the texture, and present the updated frame
     SDL_RenderClear(renderer);
+    // Clear the renderer, copy the texture, and present the updated frame
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
 }
 
 void 
 drawChar_mem(PMX *pmx){
-    int index;
-    int scale=5;
-    int x=1;
-    int y=1;
-    Uint32 color = colors_map[2].hex;
+    int index; int scale;
+    int x; int y; Uint32 color;
     int new_line = pmx_display.width/scale;
     char *c;
-    int packed = 0xC3758; // The hexadecimal value representing 800 and 600
-
-    // Extracting the coordinates
-    
-    
-
-
-    for (int addr = DISPLAY_BLOCK; addr < DISPLAY_BLOCK + (DISPLAY_SIZE/scale);){
+    for (int addr = DISPLAY_BLOCK; addr < DISPLAY_SIZE;){
         if (pmx->memory[addr] != 0) {
             for (int i=0; i<ALPHABET_NUMBER;i++){
            if (alphabet_map[i].hex == pmx->memory[addr]) c = alphabet_map[i].UpLetter;
            if (pmx->memory[addr] == 0) break;
         }
         x = pmx->memory[addr+1];
+        pmx->memory[addr+1]++;
         y = pmx->memory[addr+2];
-        printf("x: %d | y: %d\n", x, y);
+        pmx->memory[addr+2]++;
+        scale = pmx->memory[addr+3];
+        color = pmx->memory[addr+4];
         index = getAlphabetIndex(*c)+1;
         drawChar(index, x, y, scale, color);
-        addr += 3;
+        addr += 5;
+        // printf("addr: %d\n", pmx->memory[addr - 1]);
         }
-        else{
-            addr++;
-        }
+        else break;
     }
 }
 
@@ -243,7 +246,7 @@ display_deo(PMX *pmx, Uint8 addr) {
     {
     case 0x10: break;
     case 0x11: break;
-    case 0x12: drawChar_mem(pmx); break;
+    case 0x12: drawRect(0, 0, 600, 800, 1, 0x000); drawChar_mem(pmx); break;
     default:
         break;
     }
