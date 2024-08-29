@@ -57,6 +57,23 @@ char_to_hex = {
 
 
 def assemble(asm_file, rom_file):
+    """
+    Assembles the given assembly file into a ROM file.
+
+    Args:
+        asm_file (str): The path to the assembly file.
+        rom_file (str): The path to the ROM file to be created.
+
+    Returns:
+        None
+    """
+    display_addr = 0x2AD00
+    with open(asm_file, "r") as file:
+        lines = file.readlines()
+    program = []
+    variables = {}
+    # Rest of the code...
+def assemble(asm_file, rom_file):
     display_addr = 0x2AD00
     with open(asm_file, "r") as file:
         lines = file.readlines()

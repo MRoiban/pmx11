@@ -1,3 +1,29 @@
+/**
+ * @file pmx.c
+ * @brief Implementation of the PMX (Programmable Machine eXecutive) functions.
+ * 
+ * This file contains the implementation of various functions for the PMX, including initialization,
+ * loading and unloading programs, executing instructions, and utility functions.
+ * 
+ * The PMX is a virtual machine that executes a custom instruction set architecture (ISA).
+ * It has a memory, registers, a stack, and various instructions to perform arithmetic, control flow,
+ * and I/O operations.
+ * 
+ * The functions in this file provide the necessary functionality to interact with the PMX,
+ * load programs into memory, execute instructions, and monitor the state of the PMX during execution.
+ * 
+ * The PMX structure (PMX) holds the state of the PMX, including the memory, registers, stack, and program counter.
+ * The functions in this file operate on a PMX structure passed as a parameter.
+ * 
+ * The PMX uses an opcode-based instruction set, where each instruction is represented by a unique opcode.
+ * The opcode mappings are defined in the opcode_map array, which maps each opcode to its corresponding assembly instruction.
+ * 
+ * The functions in this file are designed to be used in conjunction with other modules of the PMX system,
+ * such as the display module for console output and the device module for I/O operations.
+ * 
+ * Note: Some functions in this file have TODO comments indicating that they should be moved to separate modules.
+ * These functions are currently included in this file for simplicity.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

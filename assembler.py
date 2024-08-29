@@ -129,6 +129,25 @@ def assembler(asm_file, variables, pc=0):
     return program, variables
 
 def parse_instructions(display_addr, program, variables, parts, instruction, pc=0):
+    """
+    Parses the instructions and updates the program and variables accordingly.
+
+    Args:
+        display_addr (int): The display address.
+        program (list): The list of instructions.
+        variables (dict): The dictionary of variables.
+        parts (list): The list of parts of the instruction.
+        instruction (str): The instruction to be parsed.
+        pc (int, optional): The program counter. Defaults to 0.
+
+    Returns:
+        tuple: A tuple containing the updated program and variables.
+    """
+    if instruction == "#END":
+        return program, variables
+    
+    # Rest of the code...
+def parse_instructions(display_addr, program, variables, parts, instruction, pc=0):
     if instruction == "#END":
         return program, variables
     

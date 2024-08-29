@@ -1,3 +1,11 @@
+/**
+ * @file display.c
+ * @brief Implementation file for the display module.
+ *
+ * This file contains the implementation of functions related to the display module.
+ * The display module is responsible for rendering graphics on the screen using SDL library.
+ */
+
 #include <SDL.h>
 #include <stdio.h>
 #include "../pmx.h"
