@@ -13,7 +13,7 @@
  * @brief Perform device-specific operations based on the given address.
  *
  * This function performs device-specific operations based on the given address.
- * It sets the address to 0x12, extracts the low nibble of the address, and performs
+ * It extracts the low nibble of the address, and performs
  * operations based on the extracted value.
  *
  * @param pmx The PMX structure.
