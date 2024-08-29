@@ -55,8 +55,7 @@ char_to_hex = {
     "Z": "0x1B"
 }
 
-def assembler_START(lines):
-    display_addr = 0x2AD00
+def assembler_START(lines, display_addr):
     program = []
     variables = {}
     count = 0
@@ -78,10 +77,10 @@ def assembler_START(lines):
         if instruction == "#START":
             continue
         if instruction == "#END":
-            return program, variables, count
-        parse_instructions(display_addr, program, variables, parts, instruction)
+            return program, variables, count, display_addr
+        _ , _ , display_addr = parse_instructions(display_addr, program, variables, parts, instruction)
         count += 1
-    return program, variables, count
+    return program, variables, count, display_addr
 
 def assembler(asm_file, variables, pc=0):
     display_addr = 0x2AD00
@@ -111,9 +110,10 @@ def assembler(asm_file, variables, pc=0):
         if instruction == "#START":
             if count == None:
                 count = 0
-            assembled = assembler_START(lines)
+            assembled = assembler_START(lines, display_addr)
             end_program += assembled[0]
             variables = {**variables, **assembled[1]}
+            display_addr = assembled[3]
         if assembled != None and count != None and count <= assembled[2]:
             count += 1
             continue
@@ -135,127 +135,151 @@ def parse_instructions(display_addr, program, variables, parts, instruction, pc=
     
     if instruction in ["LOAD", "PUSH", "POP", "SWAP", "DVW", "POT", 'DVO', 'VAR', 'LABEL', 'GOTO', "CALL", "WCHR", "WSTR", "IMPORT"]:
         if instruction == "LOAD":
-            opcode = assembly_to_opcode[instruction][parts[1]]
-            if not(parts[2] in variables) and not('0x' in parts[2]):
-                operand = int(parts[2].replace("#", ""))
-            else:
-                ost = []
-                vst = []
-                size = len(parts)
-                    # print(size)
-                operand = variables[parts[2]] if not('0x' in parts[2]) else parts[2]
-                if size > 3:
-                    for i in range(1,size-2):
-                            # print(parts[2+i])
-                        if '-' in parts[2+i]:
-                            ost.append('-')
-                        elif '+' in parts[2+i]:
-                            ost.append('+')
-                        else:
-                            vst.append(int(parts[2+i]))
-                        
-                        # print(ost)
-                        # print(vst)
-                    ost_len = len(ost)
-                    for i in range(ost_len):
-                        a = vst.pop()
-                        op = ost.pop()
-                        if '-' in op:
-                            operand -= a
-                        elif '+' in op:
-                            operand += a
-            program.append(opcode)
-            program.append(str(operand))
+            load_instruction(program, variables, parts, instruction)
         elif instruction == 'VAR':
-            var = parts[1]
-            value = int(parts[2].replace("#", ""))
-            variables[var] = value
+            var_instruction(variables, parts)
         elif instruction == 'CALL':
-            reg = parts[1]
-            program.append("0x11")
-            program.append(reg)
-            program.append("0xDE")
-                
+            call_instruction(program, parts)
         elif instruction == 'GOTO':
-            operand = parts[1]
-            program.append(assembly_to_opcode[instruction])
-            program.append(str(operand))
-            
+            goto_instruction(program, parts, instruction)
         elif instruction == 'IMPORT':
-            file = parts[1].strip('"')
-            assembled = assembler(file, variables, len(program))
-            program += assembled[0]
-            variables = {**variables, **assembled[1]}
+            variables = import_instruction(program, variables, parts)
         elif instruction == 'LABEL':
-            var = parts[1]
-            variables[var] = len(program) + pc
-            
-                
+            label_instruction(program, variables, parts, pc)
         elif instruction == 'WCHR':
-            char = parts[1]
-            char_hex = char_to_hex[char]
-            x = parts[2].replace("#", "")
-            y = parts[3].replace("#", "") 
-            scale = parts[4].replace("#", "")
-            color = parts[5]
-            program.append(assembly_to_opcode["POT"])
-            program.append(char_hex)
-            program.append(assembly_to_opcode["POT"])
-            program.append(display_addr)
-            display_addr += 1
-            program.append(assembly_to_opcode["STR"])
-                
-            program.append(assembly_to_opcode["POT"])
-            program.append(x)
-            program.append(assembly_to_opcode["POT"])
-            program.append(display_addr)
-            display_addr += 1
-            program.append(assembly_to_opcode["STR"])
-                
-            program.append(assembly_to_opcode["POT"])
-            program.append(y)
-            program.append(assembly_to_opcode["POT"])
-            program.append(display_addr)
-            display_addr += 1
-            program.append(assembly_to_opcode["STR"])
-                
-            program.append(assembly_to_opcode["POT"])
-            program.append(scale)
-            program.append(assembly_to_opcode["POT"])
-            program.append(display_addr)
-            display_addr += 1
-            program.append(assembly_to_opcode["STR"])
-                
-            program.append(assembly_to_opcode["POT"])
-            program.append(color)
-            program.append(assembly_to_opcode["POT"])
-            program.append(display_addr)
-            display_addr += 1
-            program.append(assembly_to_opcode["STR"])
-                
+            display_addr = wchr_instruction(display_addr, program, parts)
         elif instruction in ["PUSH", "POP", "DVW", "POT",'DVO']:
-            reg = parts[1]
-            if not(reg in variables):
-                reg_num = reg.replace("R", "") if "R" in reg else reg.replace("#", "")
-            elif '@' in reg:
-                reg_num = reg
-            elif '0x' in reg:
-                reg_num = reg
-            else:
-                reg_num = variables[reg]
-                
-            program.append(assembly_to_opcode[instruction])
-            program.append(reg_num)
+            unary_instrucition(program, variables, parts, instruction)
         elif instruction in ["SWAP"]:
-            reg1 = parts[1].replace("R", "")
-            reg2 = parts[2].replace("R", "")
-            program.append(assembly_to_opcode[instruction])
-            program.append(reg1)
-            program.append(reg2)
+            swap_instruction(program, parts, instruction)
     else:
         if instruction in assembly_to_opcode:
             program.append(assembly_to_opcode[instruction])
     return program, variables, display_addr
+
+def swap_instruction(program, parts, instruction):
+    reg1 = parts[1].replace("R", "")
+    reg2 = parts[2].replace("R", "")
+    program.append(assembly_to_opcode[instruction])
+    program.append(reg1)
+    program.append(reg2)
+
+def unary_instrucition(program, variables, parts, instruction):
+    reg = parts[1]
+    if not(reg in variables):
+        reg_num = reg.replace("R", "") if "R" in reg else reg.replace("#", "")
+    elif '@' in reg:
+        reg_num = reg
+    elif '0x' in reg:
+        reg_num = reg
+    else:
+        reg_num = variables[reg]
+                
+    program.append(assembly_to_opcode[instruction])
+    program.append(reg_num)
+
+def wchr_instruction(display_addr, program, parts):
+    char = parts[1]
+    char_hex = char_to_hex[char]
+    x = parts[2].replace("#", "")
+    y = parts[3].replace("#", "") 
+    scale = parts[4].replace("#", "")
+    color = parts[5]
+    program.append(assembly_to_opcode["POT"])
+    program.append(char_hex)
+    program.append(assembly_to_opcode["POT"])
+    program.append(display_addr)
+    display_addr += 1
+    program.append(assembly_to_opcode["STR"])
+                
+    program.append(assembly_to_opcode["POT"])
+    program.append(x)
+    program.append(assembly_to_opcode["POT"])
+    program.append(display_addr)
+    display_addr += 1
+    program.append(assembly_to_opcode["STR"])
+                
+    program.append(assembly_to_opcode["POT"])
+    program.append(y)
+    program.append(assembly_to_opcode["POT"])
+    program.append(display_addr)
+    display_addr += 1
+    program.append(assembly_to_opcode["STR"])
+                
+    program.append(assembly_to_opcode["POT"])
+    program.append(scale)
+    program.append(assembly_to_opcode["POT"])
+    program.append(display_addr)
+    display_addr += 1
+    program.append(assembly_to_opcode["STR"])
+                
+    program.append(assembly_to_opcode["POT"])
+    program.append(color)
+    program.append(assembly_to_opcode["POT"])
+    program.append(display_addr)
+    display_addr += 1
+    program.append(assembly_to_opcode["STR"])
+    return display_addr
+
+def label_instruction(program, variables, parts, pc):
+    var = parts[1]
+    variables[var] = len(program) + pc
+
+def import_instruction(program, variables, parts):
+    file = parts[1].strip('"')
+    assembled = assembler(file, variables, len(program))
+    program += assembled[0]
+    variables = {**variables, **assembled[1]}
+    return variables
+
+def goto_instruction(program, parts, instruction):
+    operand = parts[1]
+    program.append(assembly_to_opcode[instruction])
+    program.append(str(operand))
+
+def call_instruction(program, parts):
+    reg = parts[1]
+    program.append("0x11")
+    program.append(reg)
+    program.append("0xDE")
+
+def var_instruction(variables, parts):
+    var = parts[1]
+    value = int(parts[2].replace("#", ""))
+    variables[var] = value
+
+def load_instruction(program, variables, parts, instruction):
+    opcode = assembly_to_opcode[instruction][parts[1]]
+    if not(parts[2] in variables) and not('0x' in parts[2]):
+        operand = int(parts[2].replace("#", ""))
+    else:
+        ost = []
+        vst = []
+        size = len(parts)
+                    # print(size)
+        operand = variables[parts[2]] if not('0x' in parts[2]) else parts[2]
+        if size > 3:
+            for i in range(1,size-2):
+                            # print(parts[2+i])
+                if '-' in parts[2+i]:
+                    ost.append('-')
+                elif '+' in parts[2+i]:
+                    ost.append('+')
+                else:
+                    vst.append(int(parts[2+i]))
+                        
+                        # print(ost)
+                        # print(vst)
+            ost_len = len(ost)
+            for i in range(ost_len):
+                a = vst.pop()
+                op = ost.pop()
+                if '-' in op:
+                    operand -= a
+                elif '+' in op:
+                    operand += a
+    program.append(opcode)
+    program.append(str(operand))
 
 def replace_variables(program, variables):
     print(variables)
