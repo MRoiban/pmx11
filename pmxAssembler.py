@@ -1,3 +1,4 @@
+from icecream import ic
 assembly_to_opcode = {
     "HALT": "0x00",
     "LOAD": {"R1": "0x01", "R2": "0x02", "R3": "0x03", "R4": "0x04","R5": "0x05","R6": "0x06","R7": "0x07","R8": "0x08"},
@@ -122,7 +123,7 @@ def assembler(asm_file, variables, pc=0):
         if instruction == "#END":
             continue
             
-        _ , _ , display_addr = parse_instructions(display_addr, program, variables, parts, instruction, pc)
+        _ , _ , display_addr = ic(parse_instructions(display_addr, program, variables, parts, instruction, pc))
         print(variables)
     program += end_program
     
@@ -133,15 +134,13 @@ def parse_instructions(display_addr, program, variables, parts, instruction, pc=
     if instruction == "#END":
         return program, variables
     
-    if instruction in ["LOAD", "PUSH", "POP", "SWAP", "DVW", "POT", 'DVO', 'VAR', 'LABEL', 'GOTO', "CALL", "WCHR", "WSTR", "IMPORT"]:
+    if instruction in ["LOAD", "PUSH", "POP", "SWAP", "DVW", "POT", 'DVO', 'VAR', 'LABEL', "CALL", "WCHR", "WSTR", "IMPORT"]:
         if instruction == "LOAD":
             load_instruction(program, variables, parts, instruction)
         elif instruction == 'VAR':
             var_instruction(variables, parts)
         elif instruction == 'CALL':
             call_instruction(program, parts)
-        elif instruction == 'GOTO':
-            goto_instruction(program, parts, instruction)
         elif instruction == 'IMPORT':
             variables = import_instruction(program, variables, parts)
         elif instruction == 'LABEL':
@@ -179,16 +178,17 @@ def unary_instrucition(program, variables, parts, instruction):
     program.append(reg_num)
 
 def wchr_instruction(display_addr, program, parts):
+    # TODO: split this function more, there is obvious code reuse
     char = parts[1]
     char_hex = char_to_hex[char]
-    x = parts[2].replace("#", "")
-    y = parts[3].replace("#", "") 
-    scale = parts[4].replace("#", "")
-    color = parts[5]
+    x = ic(parts[2].replace("#", ""))
+    y = ic(parts[3].replace("#", "")) 
+    scale = ic(parts[4].replace("#", ""))
+    color = ic(parts[5])
     program.append(assembly_to_opcode["POT"])
     program.append(char_hex)
     program.append(assembly_to_opcode["POT"])
-    program.append(display_addr)
+    program.append(ic(display_addr))
     display_addr += 1
     program.append(assembly_to_opcode["STR"])
                 
@@ -241,7 +241,7 @@ def call_instruction(program, parts):
     reg = parts[1]
     program.append("0x11")
     program.append(reg)
-    program.append("0xDE")
+    program.append("0xDE") #? doesnt GOTO need a param?
 
 def var_instruction(variables, parts):
     var = parts[1]
