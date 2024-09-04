@@ -62,6 +62,11 @@ emu_run(PMX *pmx) {
 
 int 
 main(int argc, char* args[] ) {
+    FILE *file = fopen("./log.txt", "w");
+    if (file == NULL) {
+        perror("Error opening file");
+        return 0;
+    }
     PMX pmx;
     init_pmx(&pmx);
     initDisplay(600,420,0x000);
