@@ -10,11 +10,12 @@ assembly_to_opcode = {
     "GTH": "0x0E",
     "LTH": "0x0F",
     "DUP": "0x10",
-    "STR": '0xAA',
     "POT": "0x11",
     "OVR": "0x12",
     "INC": "0x13",
     "DCR": "0x14",
+    "MOV": "0x20",
+    "STR": '0xAA',
     "DVO": "0xAF",
     "DVW": "0xBF",
     "SWAP": "0xCF",
@@ -24,6 +25,7 @@ assembly_to_opcode = {
     "RMV": "0xEE",
     "RPC": "0xFE",
     "RET": "0xFF",
+
 }
 
 char_to_hex = {
@@ -65,7 +67,6 @@ def assembler_START(lines, display_addr):
             continue
         
         parts = line.strip().split()
-        # print(parts)
         for i in range(len(parts)):
             if "," in parts[i]:
                 parts[i] = parts[i].split(",")[0]
@@ -93,12 +94,10 @@ def assembler(asm_file, variables, pc=0):
     
     assembled = None
     for line in lines:
-        # print(line,len(line))
         if len(line) <= 0:
             continue
         
         parts = line.strip().split()
-        # print(parts)
         for i in range(len(parts)):
             if "," in parts[i]:
                 parts[i] = parts[i].split(",")[0]
@@ -134,7 +133,7 @@ def parse_instructions(display_addr, program, variables, parts, instruction, pc=
     if instruction == "#END":
         return program, variables
     
-    if instruction in ["LOAD", "PUSH", "POP", "SWAP", "DVW", "POT", 'DVO', 'VAR', 'LABEL', "CALL", "WCHR", "WSTR", "IMPORT"]:
+    if instruction in ["LOAD","MOV", "PUSH", "POP", "SWAP", "DVW", "POT", 'DVO', 'VAR', 'LABEL', "CALL", "WCHR", "WSTR", "IMPORT"]:
         if instruction == "LOAD":
             load_instruction(program, variables, parts, instruction)
         elif instruction == 'VAR':
@@ -151,6 +150,8 @@ def parse_instructions(display_addr, program, variables, parts, instruction, pc=
             unary_instrucition(program, variables, parts, instruction)
         elif instruction in ["SWAP"]:
             swap_instruction(program, parts, instruction)
+        elif instruction == 'MOV':
+            mov(program, parts, instruction)
     else:
         if instruction in assembly_to_opcode:
             program.append(assembly_to_opcode[instruction])
@@ -235,30 +236,41 @@ def load_instruction(program, variables, parts, instruction):
         ost = []
         vst = []
         size = len(parts)
-                    # print(size)
         operand = variables[parts[2]] if not('0x' in parts[2]) else parts[2]
-        if size > 3:
-            for i in range(1,size-2):
-                            # print(parts[2+i])
-                if '-' in parts[2+i]:
-                    ost.append('-')
-                elif '+' in parts[2+i]:
-                    ost.append('+')
-                else:
-                    vst.append(int(parts[2+i]))
+        # TODO: this snippet was used for basic arithmetics with vars when using load, it's ugly asf
+        # if size > 3:
+        #     for i in range(1,size-2):
+        #         if '-' in parts[2+i]:
+        #             ost.append('-')
+        #         elif '+' in parts[2+i]:
+        #             ost.append('+')
+        #         else:
+        #             vst.append(int(parts[2+i]))
                         
-                        # print(ost)
-                        # print(vst)
-            ost_len = len(ost)
-            for i in range(ost_len):
-                a = vst.pop()
-                op = ost.pop()
-                if '-' in op:
-                    operand -= a
-                elif '+' in op:
-                    operand += a
+        #     ost_len = len(ost)
+        #     for i in range(ost_len):
+        #         a = vst.pop()
+        #         op = ost.pop()
+        #         if '-' in op:
+        #             operand -= a
+        #         elif '+' in op:
+        #             operand += a
     program.append(opcode)
     program.append(str(operand))
+
+def mov(program, parts, instruction):
+    opcode = assembly_to_opcode[instruction]
+    arg1 = parts[1].replace("R", "") if not('0x' in parts[1]) else parts[1]
+    flag1 = 0
+    if '0x' in arg1: flag1 = 1
+    arg2 = parts[2].replace("R", "") if not('0x' in parts[2]) else parts[2]
+    flag2 = 0
+    if '0x' in arg2: flag2 = 1
+    program.append(opcode)
+    program.append(flag1)
+    program.append(flag2)
+    program.append(arg1)
+    program.append(arg2)
 
 def replace_variables(program, variables):
     print(variables)
@@ -277,7 +289,6 @@ def replace_variables(program, variables):
 
 def write_rom_file(rom_file, program):
     with open(rom_file, "w") as file:
-        # print(len(program))
         file.write(",".join(program))
 
 

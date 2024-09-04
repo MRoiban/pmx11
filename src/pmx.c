@@ -276,13 +276,39 @@ store(PMX *pmx) {
     pmx->pc += 1;
 }
 
+void
+mov(PMX *pmx) {
+    int flag1 = pmx->memory[++pmx->pc];
+    int flag2 = pmx->memory[++pmx->pc];
+    int arg1 = pmx->memory[++pmx->pc];
+    int arg2 = pmx->memory[++pmx->pc];
+    printf("%d,%d,%d,%d\n",flag1,flag2,arg1,arg2);
+    if (flag1 == 0) {
+        if (flag2 == 0) {
+            pmx->registers[arg2-1] = pmx->registers[arg1-1];
+        }
+        else {
+            pmx->memory[arg2] = pmx->registers[arg1-1];
+        }
+    }
+    else {
+        if (flag2 == 0) {
+            pmx->registers[arg2-1] = pmx->memory[arg1];
+        }
+        else {
+            pmx->memory[arg2] = pmx->memory[arg1];
+        }
+    }
+    pmx->pc++; 
+}
+
 
 typedef struct {
     unsigned char opcode;
     const char *assembly;
 } OpcodeMapping;
 
-#define OPCODE_COUNT 31 // Number of opcodes
+#define OPCODE_COUNT 32 // Number of opcodes
 
 // Array of opcode mappings
 const OpcodeMapping opcode_map[OPCODE_COUNT] = {
@@ -307,6 +333,7 @@ const OpcodeMapping opcode_map[OPCODE_COUNT] = {
     {0x12, "OVR"},
     {0x13, "INC"},
     {0x14, "DCR"},
+    {0x20, "MOV"},
     {0xAA, "STR"},
     {0xAF, "DVO"},
     {0xBF, "DVW"},
@@ -401,6 +428,7 @@ run(PMX *pmx) {
             case 0x12: over(pmx); break;
             case 0x13: increase(pmx); break;
             case 0x14: decrease(pmx); break;
+            case 0x20: mov(pmx); break;
             case 0x24: sqrt_instruction(pmx); break;
             case 0x25: abs_instruction(pmx); break;
             case 0x23: power(pmx); break;
