@@ -1,3 +1,4 @@
+#include "./utils.h"
 #ifndef PMX_H
 #define PMX_H
 
@@ -6,11 +7,7 @@
 #define DISPLAY_SIZE (480000)
 #define DISPLAY_BLOCK (MEMORY_SIZE - DISPLAY_SIZE)
 
-typedef unsigned char Uint8;
-typedef signed char Sint8;
-typedef unsigned short Uint16;
-typedef signed short Sint16;
-typedef unsigned int Uint32;
+
 
 typedef struct {
     unsigned int *memory;

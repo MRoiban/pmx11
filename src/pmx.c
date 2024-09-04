@@ -129,7 +129,8 @@ pop(PMX *pmx, int reg) {
     pmx->pc += 2;
 }
 
-int halt(PMX *pmx, int running) {
+int 
+halt(PMX *pmx, int running) {
     unload_program(pmx);
     return 0;
 }
@@ -349,8 +350,12 @@ dump(PMX *pmx, int opcode) {
     }
     fprintf(file, "]\n");
     fprintf(file, "\t\tR1=%d, R2=%d, R3=%d, R4=%d, R5=%d, R6=%d, R7=%d, R8=%d\n", pmx->registers[0], pmx->registers[1], pmx->registers[2], pmx->registers[3],pmx->registers[4],pmx->registers[5],pmx->registers[6],pmx->registers[7]);
+    fprintf(file, "\t\tDISPLAY ADDR: [ ");
+    for (int i = DISPLAY_BLOCK; i <= DISPLAY_BLOCK + 100; i++) {
+        fprintf(file, "%d ", pmx->memory[i]);
+    }
     fprintf(file, "-------------------------------------\n");
-
+    
     // Close the file
     fclose(file);
 }
@@ -417,11 +422,11 @@ run(PMX *pmx) {
     }
 }
 
-#define MAX_PROGRAM_SIZE 1000
-#define MAX_LINE_LENGTH 200
+#define MAX_PROGRAM_SIZE 10000
+#define MAX_LINE_LENGTH 2000
 void 
 load_program_from_file(PMX *pmx, const char *filename) {
-    // Open the file
+    // Open the fil
     
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
