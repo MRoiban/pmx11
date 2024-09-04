@@ -422,8 +422,8 @@ run(PMX *pmx) {
     }
 }
 
-#define MAX_PROGRAM_SIZE 10000
-#define MAX_LINE_LENGTH 2000
+#define MAX_PROGRAM_SIZE 100000
+#define MAX_LINE_LENGTH 20000
 void 
 load_program_from_file(PMX *pmx, const char *filename) {
     // Open the fil

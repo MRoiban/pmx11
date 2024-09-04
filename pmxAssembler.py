@@ -123,7 +123,7 @@ def assembler(asm_file, variables, pc=0):
         if instruction == "#END":
             continue
             
-        _ , _ , display_addr = ic(parse_instructions(display_addr, program, variables, parts, instruction, pc))
+        _ , _ , display_addr = parse_instructions(display_addr, program, variables, parts, instruction, pc)
         print(variables)
     program += end_program
     
@@ -178,43 +178,22 @@ def unary_instrucition(program, variables, parts, instruction):
     program.append(reg_num)
 
 def wchr_instruction(display_addr, program, parts):
-    # TODO: split this function more, there is obvious code reuse
     char = parts[1]
     char_hex = char_to_hex[char]
-    x = ic(parts[2].replace("#", ""))
-    y = ic(parts[3].replace("#", "")) 
-    scale = ic(parts[4].replace("#", ""))
-    color = ic(parts[5])
+    x = parts[2].replace("#", "")
+    y = parts[3].replace("#", "") 
+    scale = parts[4].replace("#", "")
+    color = parts[5]
+    display_addr = add_to_display_mem(display_addr, program, char_hex)
+    display_addr = add_to_display_mem(display_addr, program, x)
+    display_addr = add_to_display_mem(display_addr, program, y)
+    display_addr = add_to_display_mem(display_addr, program, scale)
+    display_addr = add_to_display_mem(display_addr, program, color)            
+    return display_addr
+
+def add_to_display_mem(display_addr, program, item):
     program.append(assembly_to_opcode["POT"])
-    program.append(char_hex)
-    program.append(assembly_to_opcode["POT"])
-    program.append(ic(display_addr))
-    display_addr += 1
-    program.append(assembly_to_opcode["STR"])
-                
-    program.append(assembly_to_opcode["POT"])
-    program.append(x)
-    program.append(assembly_to_opcode["POT"])
-    program.append(display_addr)
-    display_addr += 1
-    program.append(assembly_to_opcode["STR"])
-                
-    program.append(assembly_to_opcode["POT"])
-    program.append(y)
-    program.append(assembly_to_opcode["POT"])
-    program.append(display_addr)
-    display_addr += 1
-    program.append(assembly_to_opcode["STR"])
-                
-    program.append(assembly_to_opcode["POT"])
-    program.append(scale)
-    program.append(assembly_to_opcode["POT"])
-    program.append(display_addr)
-    display_addr += 1
-    program.append(assembly_to_opcode["STR"])
-                
-    program.append(assembly_to_opcode["POT"])
-    program.append(color)
+    program.append(item)
     program.append(assembly_to_opcode["POT"])
     program.append(display_addr)
     display_addr += 1
