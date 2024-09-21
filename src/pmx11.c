@@ -21,7 +21,8 @@
  */
 void 
 emu_deo(PMX *pmx, Uint32 addr) {
-    addr = 0x12;
+    //todo: actual implementation, loop over dev memory?
+    //? maybe don't loop inside emu_deo, but inside the main loop?
     Uint8 lv = (addr >> 4) & 0x0F;
     
     switch (lv)
@@ -53,9 +54,13 @@ emu_run(PMX *pmx) {
     // MAIN LOOP
     while (!quit) {
         while (SDL_PollEvent(&e)) {if (e.type == SDL_QUIT) quit = 1;}
-        run(pmx); 
+        step(pmx); 
         display_update();
-        emu_deo(pmx, 0x12);
+        for (int i=0; i<256; i++){
+            if (pmx->dev[i]==1){
+                emu_deo(pmx, i);
+            }
+        }
         pmx->time++;
     }
 }
