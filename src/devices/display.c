@@ -130,11 +130,14 @@ drawBitmap(int i, int j,
            int rows, int cols, 
            int scale, Uint32 color) 
 {
+    int startX = width * index;
+    int endX = width * (index + 1);
+    
     for (int y = 0; y < rows; y++) {
-        for (int x = 0+(width*index); x < (width*(index+1)); x++) {
+        for (int x = startX; x < endX; x++) {
             if (bitmap[y][x] == '1') {
-                int newX = y+j;
-                int newY = (x+i)-(width*index);
+                int newX = y + j;
+                int newY = x - startX + i;
                 drawPixel(newX, newY, scale, color);
             }
         }
@@ -220,29 +223,28 @@ display_update() {
 }
 
 void 
-drawChar_mem(PMX *pmx){
-    int index; int scale;
-    int x; int y; Uint32 color;
-    int new_line = pmx_display.width/scale;
-    char *c;
-    for (int addr = DISPLAY_BLOCK; addr < DISPLAY_SIZE;){
-        if (pmx->memory[addr] != 0) {
-            for (int i=0; i<ALPHABET_NUMBER;i++){
-           if (alphabet_map[i].hex == pmx->memory[addr]) c = alphabet_map[i].UpLetter;
-           if (pmx->memory[addr] == 0) break;
+drawChar_mem(PMX *pmx) {
+    int addr = DISPLAY_BLOCK;
+    while (addr < DISPLAY_SIZE && pmx->memory[addr] != 0) {
+        char *c = NULL;
+        for (int i = 0; i < ALPHABET_NUMBER; i++) {
+            if (alphabet_map[i].hex == pmx->memory[addr]) {
+                c = alphabet_map[i].UpLetter;
+                break;
+            }
         }
-        x = pmx->memory[addr+1];
-        pmx->memory[addr+1]++;
-        y = pmx->memory[addr+2];
-        pmx->memory[addr+2]++;
-        scale = pmx->memory[addr+3];
-        color = pmx->memory[addr+4];
-        index = getAlphabetIndex(*c)+1;
+        
+        if (c == NULL) break;
+
+        int x = pmx->memory[addr+1];
+        int y = pmx->memory[addr+2];
+        int scale = pmx->memory[addr+3];
+        Uint32 color = pmx->memory[addr+4];
+        
+        int index = getAlphabetIndex(*c) + 1;
         drawChar(index, x, y, scale, color);
+        
         addr += 5;
-        // printf("addr: %d\n", pmx->memory[addr - 1]);
-        }
-        else break;
     }
 }
 
