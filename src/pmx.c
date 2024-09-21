@@ -40,6 +40,7 @@ init_pmx(PMX *pmx) {
     pmx->memory = malloc(MEMORY_SIZE * sizeof(unsigned int));
     pmx->wst = malloc(MEMORY_SIZE * sizeof(unsigned int));
     pmx->rst = malloc(MEMORY_SIZE * sizeof(unsigned int));
+    pmx->step = 0;
     for (int i = 0; i < MEMORY_SIZE; i++) {
         pmx->memory[i] = 0;
         pmx->wst[i] = 0;
@@ -57,6 +58,7 @@ init_pmx(PMX *pmx) {
 
 void 
 load_program(PMX *pmx, int *program, int length) {
+    pmx->steps = length;
     for (int i = 0; i < length; i++) {
         pmx->memory[i] = program[i];
     }
@@ -365,23 +367,27 @@ dump(PMX *pmx, int opcode) {
     }
 
     // Write the PMX state to the file
-    fprintf(file, "(%d) \tOPCODE: %x (%s)\n", pmx->pc, opcode, get_assembly_instruction(opcode));
-    fprintf(file, "\t\tWST: [ ");
-    for (int i = 0; i <= pmx->sp; i++) {
-        fprintf(file, "%d ", pmx->wst[i]);
+
+    if (opcode != 0x00) {
+        fprintf(file, "(%d) \tOPCODE: %x (%s)\n", pmx->pc, opcode, get_assembly_instruction(opcode));
+        fprintf(file, "\t\tWST: [ ");
+        for (int i = 0; i <= pmx->sp; i++) {
+            fprintf(file, "%d ", pmx->wst[i]);
+        }
+        fprintf(file, "]\n");
+        fprintf(file, "\t\tRST: [ ");
+        for (int i = 0; i <= pmx->rp; i++) {
+            fprintf(file, "%d ", pmx->rst[i]);
+        }
+        fprintf(file, "]\n");
+        fprintf(file, "\t\tR1=%d, R2=%d, R3=%d, R4=%d, R5=%d, R6=%d, R7=%d, R8=%d\n", pmx->registers[0], pmx->registers[1], pmx->registers[2], pmx->registers[3],pmx->registers[4],pmx->registers[5],pmx->registers[6],pmx->registers[7]);
+        fprintf(file, "\t\tDISPLAY ADDR: [ ");
+        for (int i = DISPLAY_BLOCK; i <= DISPLAY_BLOCK + 100; i++) {
+            fprintf(file, "%d ", pmx->memory[i]);
+        }
+        fprintf(file, "]\n");
+        fprintf(file, "-------------------------------------\n");
     }
-    fprintf(file, "]\n");
-    fprintf(file, "\t\tRST: [ ");
-    for (int i = 0; i <= pmx->rp; i++) {
-        fprintf(file, "%d ", pmx->rst[i]);
-    }
-    fprintf(file, "]\n");
-    fprintf(file, "\t\tR1=%d, R2=%d, R3=%d, R4=%d, R5=%d, R6=%d, R7=%d, R8=%d\n", pmx->registers[0], pmx->registers[1], pmx->registers[2], pmx->registers[3],pmx->registers[4],pmx->registers[5],pmx->registers[6],pmx->registers[7]);
-    fprintf(file, "\t\tDISPLAY ADDR: [ ");
-    for (int i = DISPLAY_BLOCK; i <= DISPLAY_BLOCK + 100; i++) {
-        fprintf(file, "%d ", pmx->memory[i]);
-    }
-    fprintf(file, "-------------------------------------\n");
     
     // Close the file
     fclose(file);
@@ -450,51 +456,122 @@ run(PMX *pmx) {
     }
 }
 
-#define MAX_PROGRAM_SIZE 100000
+void 
+step(PMX *pmx) {
+    int running = 1;
+    int instruction;
+    FILE *file = fopen("./log.txt", "a");
+    if (file == NULL) {
+        // Handle file open error
+        perror("Error opening file");
+        return;
+    }
+    fclose(file);
+    if (pmx->step < pmx->steps){
+        instruction = pmx->memory[pmx->pc];
+        pmx->step++;
+    }
+    else {
+        instruction = 0x00;
+    }
+    switch (instruction) {
+        case 0x00: running=halt(pmx, running); break;
+        case 0x01: load(pmx, 1, pmx->memory[pmx->pc + 1]); break;
+        case 0x02: load(pmx, 2, pmx->memory[pmx->pc + 1]); break;
+        case 0x03: load(pmx, 3, pmx->memory[pmx->pc + 1]); break;
+        case 0x04: load(pmx, 4, pmx->memory[pmx->pc + 1]); break;
+        case 0x05: load(pmx, 5, pmx->memory[pmx->pc + 1]); break;
+        case 0x06: load(pmx, 6, pmx->memory[pmx->pc + 1]); break;
+        case 0x07: load(pmx, 7, pmx->memory[pmx->pc + 1]); break;
+        case 0x08: load(pmx, 8, pmx->memory[pmx->pc + 1]); break;
+        case 0x09: add(pmx); break;
+        case 0x0A: sub(pmx); break;
+        case 0x0B: push(pmx, pmx->memory[pmx->pc + 1]); break;
+        case 0x0C: pop(pmx, pmx->memory[pmx->pc + 1]); break;
+        case 0x0D: equal(pmx); break;
+        case 0x0F: lower_than(pmx); break;
+        case 0x10: duplicate(pmx); break;
+        case 0x11: put_on_top_of_stack(pmx, pmx->memory[pmx->pc + 1]); break;
+        case 0x12: over(pmx); break;
+        case 0x13: increase(pmx); break;
+        case 0x14: decrease(pmx); break;
+        case 0x20: mov(pmx); break;
+        case 0x24: sqrt_instruction(pmx); break;
+        case 0x25: abs_instruction(pmx); break;
+        case 0x23: power(pmx); break;
+        case 0xAA: store(pmx); break;
+        case 0xAF: console_deo(pmx, pmx->memory[pmx->pc + 1]); break;
+        case 0xBF: dev_write(pmx, pmx->memory[pmx->pc + 1]); break;
+        case 0xDE: goto_instruction(pmx); break;
+        case 0xDF: jump(pmx); break;
+        case 0xEE: remove_top_of_stack(pmx); break;
+        case 0xEF: jump_if_not_zero(pmx); break;
+        case 0xFE: read_pc(pmx); break;
+        case 0xFF: ret(pmx); break;
+        case 0x1CF: swap(pmx); break;
+        case 0x2CF: swap(pmx); break;
+        case 0x3CF: swap(pmx); break;
+        default: running = 0; break;
+    }
+    dump(pmx, instruction);
+}
+
 #define MAX_LINE_LENGTH 20000
+
 void 
 load_program_from_file(PMX *pmx, const char *filename) {
-    // Open the fil
-    
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
         printf("Failed to open file: %s\n", filename);
         return;
     }
 
-    // Read the content from the file
-    int program[MAX_PROGRAM_SIZE];
+    // First pass: count the number of instructions
     int program_size = 0;
-
     char line[MAX_LINE_LENGTH];
     while (fgets(line, sizeof(line), file) != NULL) {
         char *token = strtok(line, ",");
         while (token != NULL) {
-            int value;
-            // printf("strtoken: %s\n", token);
-            // Check if the token starts with '0x' for hexadecimal values
-            if (strncmp(token, "0x", 2) == 0) {
-                sscanf(token, "%x", &value);
-                // printf("hex-token: %x\n", value);
-            } else {
-                sscanf(token, "%d", &value);
-            }
-
-            if (program_size >= MAX_PROGRAM_SIZE) {
-                printf("Program size exceeds maximum limit\n");
-                break;
-            }
-            program[program_size++] = value;
+            program_size++;
             token = strtok(NULL, ",");
         }
     }
 
-    // Close the file
+    // Allocate memory for the program
+    int *program = (int *)malloc(program_size * sizeof(int));
+    if (program == NULL) {
+        printf("Failed to allocate memory for program\n");
+        fclose(file);
+        return;
+    }
+
+    // Reset file pointer to the beginning
+    fseek(file, 0, SEEK_SET);
+
+    // Second pass: read the instructions
+    int index = 0;
+    while (fgets(line, sizeof(line), file) != NULL) {
+        char *token = strtok(line, ",");
+        while (token != NULL) {
+            int value;
+            if (strncmp(token, "0x", 2) == 0) {
+                sscanf(token, "%x", &value);
+            } else {
+                sscanf(token, "%d", &value);
+            }
+            program[index++] = value;
+            token = strtok(NULL, ",");
+        }
+    }
+
     fclose(file);
 
     // Load the program into memory
     pmx->registers[7] = program_size;
     load_program(pmx, program, program_size);
+
+    // Free the allocated memory
+    free(program);
 }
 
 

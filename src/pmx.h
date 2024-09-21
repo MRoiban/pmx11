@@ -7,8 +7,6 @@
 #define DISPLAY_SIZE (480000)
 #define DISPLAY_BLOCK (MEMORY_SIZE - DISPLAY_SIZE)
 
-
-
 typedef struct {
     unsigned int *memory;
     unsigned int *wst;  // Stack
@@ -16,6 +14,8 @@ typedef struct {
     int sp;
     int rp;
     int pc;
+    int step;
+    int steps;
     int registers[REGISTER_NUMBER];  // R1, R2, R3
     int dev[0x100];
     int time;
@@ -51,7 +51,9 @@ void sqrt_instruction(PMX *pmx);
 void abs_instruction(PMX *pmx);
 void store(PMX *pmx);
 void ret(PMX *pmx);
+void mov(PMX *pmx);
 void run(PMX *pmx);
+void step(PMX *pmx);
 void load_program_from_file(PMX *pmx, const char *filename);
 
 #endif // PMX_H
