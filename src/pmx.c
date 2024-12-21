@@ -40,20 +40,25 @@ init_pmx(PMX *pmx) {
     pmx->memory = malloc(MEMORY_SIZE * sizeof(unsigned int));
     pmx->wst = malloc(MEMORY_SIZE * sizeof(unsigned int));
     pmx->rst = malloc(MEMORY_SIZE * sizeof(unsigned int));
-    pmx->step = 0;
-    for (int i = 0; i < MEMORY_SIZE; i++) {
-        pmx->memory[i] = 0;
-        pmx->wst[i] = 0;
-        pmx->rst[i] = 0;
+
+    if (!pmx->memory || !pmx->wst || !pmx->rst) {
+        free(pmx->memory);
+        free(pmx->wst);
+        free(pmx->rst);
+        return;
     }
+
+    memset(pmx->memory, 0, MEMORY_SIZE * sizeof(unsigned int));
+    memset(pmx->wst, 0, MEMORY_SIZE * sizeof(unsigned int));
+    memset(pmx->rst, 0, MEMORY_SIZE * sizeof(unsigned int));
+    memset(pmx->registers, 0, REGISTER_NUMBER * sizeof(int));
     
-    for (int i = 0; i < REGISTER_NUMBER; i++) {
-        pmx->registers[i] = 0;
-    }
+    
     pmx->sp = -1;
     pmx->rp = -1;
     pmx->pc = 0;
     pmx->time = 0;
+    pmx->step = 0;
 }
 
 void 
