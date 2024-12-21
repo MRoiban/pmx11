@@ -7,3 +7,6 @@ array.txt
 addition.asm
 temp
 *.o
+.git
+.venv
+codebase.txt
