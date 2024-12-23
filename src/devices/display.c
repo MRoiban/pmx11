@@ -45,6 +45,18 @@ enum ALPHABET_ENUM {
     Z
 };
 
+struct numbers {
+    const char *bitmap[5];
+    int height;
+    int width;
+} numbers = {.bitmap = {"00001001110011100101001110011100111001110011100111",
+                        "00011000010000100101001000010000001001010010100101",
+                        "00001001110001100111001110011100011001110011100101",
+                        "00001001000000100001000010010100001001010000100101",
+                        "00001001110011100001001110011100001001110011100111"},
+             .height = 5,
+             .width = 100};
+
 struct alphabet {
     const char *bitmap[5];
     int height;
@@ -72,14 +84,16 @@ struct alphabet {
     .width = 130,
 };
 
-#define ALPHABET_NUMBER 27
+#define ALPHABET_NUMBER 37
 const AlphabetMapping alphabet_map[ALPHABET_NUMBER] = {
     {0x00, " "}, {0x01, "A"}, {0x02, "B"}, {0x03, "C"}, {0x04, "D"},
     {0x05, "E"}, {0x06, "F"}, {0x07, "G"}, {0x08, "H"}, {0x09, "I"},
     {0x0A, "J"}, {0x0B, "K"}, {0x0C, "L"}, {0x0D, "M"}, {0x0E, "N"},
     {0x0F, "O"}, {0x10, "P"}, {0x11, "Q"}, {0x12, "R"}, {0x13, "S"},
     {0x14, "T"}, {0x15, "U"}, {0x17, "V"}, {0x18, "W"}, {0x19, "X"},
-    {0x1A, "Y"}, {0x1B, "Z"},
+    {0x1A, "Y"}, {0x1B, "Z"}, {0x1C, "1"}, {0x1D, "2"}, {0x1E, "3"},
+    {0x1F, "4"}, {0x20, "5"}, {0x21, "6"}, {0x22, "7"}, {0x23, "8"},
+    {0x24, "9"}, {0x25, "0"},
 };
 
 #define COLORS 7
@@ -146,11 +160,11 @@ drawBitmap(int i, int j, int index, int width, const char *bitmap[], int rows,
     }
 }
 
-void
-drawChar(int index, int x, int y, int scale, Uint32 color) {
-    drawBitmap(x, y, index, 5, alphabet.bitmap, alphabet.height, alphabet.width,
-               scale, color);
-}
+// void
+// drawChar(int index, int x, int y, int scale, Uint32 color) {
+//     drawBitmap(x, y, index, 5, alphabet.bitmap, alphabet.height, alphabet.width,
+//                scale, color);
+// }
 
 int
 getAlphabetIndex(char letter) {
@@ -159,6 +173,39 @@ getAlphabetIndex(char letter) {
 
     return index;
 }
+
+int 
+getNumberIndex(char digit) {
+    // Calculate the index ('1' -> 0, '2' -> 1, ..., '9' -> 8, '0' -> 9)
+    int index;
+    if (digit == '0') {
+        index = 9; // Special case for '0'
+    } else {
+        index = digit - '1';
+    }
+
+    return index;
+}
+
+void
+drawChar(char character, int x, int y, int scale, Uint32 color) {
+    if (character >= 'A' && character <= 'Z') {
+        // Character is a letter (A-Z)
+        int index = getAlphabetIndex(character); // Convert to 0-based index
+        drawBitmap(x, y, index, 5, alphabet.bitmap, alphabet.height, alphabet.width,
+                   scale, color);
+    } else if (character >= '0' && character <= '9') {
+        // Character is a number (0-9)
+        int index = getNumberIndex(character); // Convert to 0-based index
+        drawBitmap(x, y, index, 5, numbers.bitmap, numbers.height, numbers.width,
+                   scale, color);
+    } else {
+        // Invalid character or space
+        printf("Unsupported character: %c\n", character);
+    }
+}
+
+
 
 void
 drawString(char string[], int x, int y, int scale, Uint32 color) {
@@ -257,9 +304,6 @@ drawChar_mem(PMX *pmx) {
         int flagc = pmx->memory[addr + 4 + 4];
         int done = pmx->memory[addr + 5 + 4];
 
-        printf("flagx: %d, flagy: %d, flags: %d, flagc: %d, done: %d\n", flagx,
-               flagy, flags, flagc, done);
-
         if (flagx != 0) {
             x = pmx->registers[pmx->memory[addr + 1] - 1];
         } else {
@@ -280,8 +324,8 @@ drawChar_mem(PMX *pmx) {
         } else {
             color = pmx->memory[addr + 4];
         }
-        int index = getAlphabetIndex(*c) + 1;
-        drawChar(index, x, y, scale, color);
+        // int index = getAlphabetIndex(*c) + 1;
+        drawChar(*c, x, y, scale, color);
 
         addr += 10;
     }
