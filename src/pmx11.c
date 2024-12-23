@@ -4,6 +4,7 @@
  */
 
 #include "./devices/display.h"
+#include "./devices/mouse.h"
 #include "./pmx.h"
 #include <SDL.h>
 #include <stdio.h>
@@ -31,7 +32,10 @@ emu_deo(PMX *pmx, Uint32 addr) {
     case 0x01:
         display_deo(pmx, addr);
         break;
-
+    case 0x02:
+        mouse_deo(pmx, addr);
+        printf("inside deo\n");
+        break;
     default:
         break;
     }
@@ -61,6 +65,8 @@ emu_run(PMX *pmx) {
         }
         step(pmx);
         display_update();
+        mouse_update();
+        printf("x: %d, y: %d\n",pmx->dev[0x25], pmx->dev[0x26]);
         for (int i = 0; i < 256; i++) {
             if (pmx->dev[i] == 1) {
                 emu_deo(pmx, i);
@@ -80,6 +86,7 @@ main(int argc, char *args[]) {
     PMX pmx;
     init_pmx(&pmx);
     initDisplay(600, 420, 0x000);
+    init_mouse(600, 420);
     emu_run(&pmx);
     return 0;
 }
