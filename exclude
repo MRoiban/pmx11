@@ -1,0 +1,12 @@
+.vscode
+__pycache__
+test.py
+log.txt
+build
+array.txt
+addition.asm
+temp
+*.o
+.git
+.venv
+codebase.txt
