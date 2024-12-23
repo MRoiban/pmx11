@@ -39,5 +39,8 @@ pmx11.o: ./src/pmx11.c
 	$(CC) $(CFLAGS) $(SDL) -c ./src/pmx11.c -o pmx11.o
 
 # Clean rules
-clean:
+clean-all:
 	$(RM) $(EXE) $(OBJS)
+
+clean-objects:
+	$(RM) $(OBJS)
