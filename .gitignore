@@ -10,4 +10,5 @@ temp
 .git
 .venv
 codebase.txt
-program.rom
+*.rom
+
