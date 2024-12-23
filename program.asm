@@ -8,8 +8,6 @@ LOAD R3, #4
 LOAD R4, 0xfff
 
 // Draw something 
-WCHR M, R1, R2, R3, R4
-//WCHR M, #9, #5, #4, R4
-
+WCHR 1, R1, R2, R3, R4
 
 HALT
