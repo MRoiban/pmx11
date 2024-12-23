@@ -114,8 +114,6 @@ static SDL_Surface *screenSurface = NULL;
 void
 updateDisplayBg(Uint32 bg) {
     screenSurface = SDL_GetWindowSurface(window);
-    // SDL_FillRect( screenSurface, NULL, SDL_MapRGB( screenSurface->format,
-    // 0x00, 0x00, 0x00 ) );
     SDL_UpdateWindowSurface(window);
 }
 
@@ -274,6 +272,19 @@ display_update() {
     // Clear the renderer, copy the texture, and present the updated frame
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
+}
+
+int 
+char_to_hex(char character) 
+{
+    int hex;
+    for (int i = 0; i < ALPHABET_NUMBER; i++) {
+            if (alphabet_map[i].UpLetter == character) {
+                hex = alphabet_map[i].hex;
+                break;
+            }
+        }
+    return hex;
 }
 
 void
