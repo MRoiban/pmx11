@@ -17,7 +17,7 @@ else
 endif
 
 # Object files
-OBJS = pmx.o display.o pmx11.o
+OBJS = pmx.o mouse.o display.o pmx11.o
 
 # Default target
 all: $(EXE)
@@ -34,6 +34,9 @@ pmx.o: ./src/pmx.c ./src/pmx.h
 
 display.o: ./src/devices/display.c ./src/devices/display.h
 	$(CC) $(CFLAGS) $(SDL) -c ./src/devices/display.c -o display.o
+
+mouse.o: ./src/devices/mouse.c ./src/devices/mouse.h
+	$(CC) $(CFLAGS) $(SDL) -c ./src/devices/mouse.c -o mouse.o
 
 pmx11.o: ./src/pmx11.c
 	$(CC) $(CFLAGS) $(SDL) -c ./src/pmx11.c -o pmx11.o
