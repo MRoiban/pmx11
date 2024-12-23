@@ -2,7 +2,8 @@
 #ifndef PMX_H
 #define PMX_H
 
-#define MEMORY_SIZE (1024 * 64 * 10) // 10 KB memory
+#define KILOBYTE (1024 * 64)
+#define MEMORY_SIZE (10 * KILOBYTE) // 10 KB memory
 #define REGISTER_NUMBER (8)
 #define DISPLAY_SIZE (480000)
 #define DISPLAY_BLOCK (MEMORY_SIZE - DISPLAY_SIZE)
@@ -16,7 +17,7 @@ typedef struct {
     int pc;
     int step;
     int steps;
-    int registers[REGISTER_NUMBER]; // R1, R2, R3
+    int registers[REGISTER_NUMBER]; // R1, R2, R3, ...
     int dev[0x100];
     int time;
 } PMX;

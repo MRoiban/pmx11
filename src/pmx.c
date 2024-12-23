@@ -290,6 +290,7 @@ mov(PMX *pmx) {
     int arg1 = pmx->memory[++pmx->pc];
     int arg2 = pmx->memory[++pmx->pc];
     printf("%d,%d,%d,%d\n", flag1, flag2, arg1, arg2);
+    
     if (flag1 == 0) {
         if (flag2 == 0) {
             pmx->registers[arg2 - 1] = pmx->registers[arg1 - 1];
