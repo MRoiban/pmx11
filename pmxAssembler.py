@@ -181,15 +181,42 @@ def unary_instrucition(program, variables, parts, instruction):
 def wchr_instruction(display_addr, program, parts):
     char = parts[1]
     char_hex = char_to_hex[char]
-    x = parts[2].replace("#", "")
-    y = parts[3].replace("#", "") 
-    scale = parts[4].replace("#", "")
-    color = parts[5]
+
+    x = parts[2].replace("R", "") if not('#' in parts[2]) else parts[2]
+    flag_x = 1
+    if '#' in x: 
+        flag_x = 0
+        x = parts[2].replace("#", "")
+    print(x)
+    
+    y = parts[3].replace("R", "") if not('#' in parts[3]) else parts[3]
+    flag_y = 1
+    if '#' in y: 
+        flag_y = 0
+        y = parts[3].replace("#", "")
+    
+    scale = parts[4].replace("R", "") if not('#' in parts[4]) else parts[4]
+    flag_s = 1
+    if '#' in scale: 
+        flag_s = 0
+        scale = parts[4].replace("#", "")
+    
+    color = parts[5].replace("R", "") if not('0x' in parts[5]) else parts[5]
+    flag_c = 1
+    if '0x' in color: flag_c = 0
+    # color = parts[5].replace("0x", "")
+    
     display_addr = add_to_display_mem(display_addr, program, char_hex)
     display_addr = add_to_display_mem(display_addr, program, x)
     display_addr = add_to_display_mem(display_addr, program, y)
     display_addr = add_to_display_mem(display_addr, program, scale)
-    display_addr = add_to_display_mem(display_addr, program, color)            
+    display_addr = add_to_display_mem(display_addr, program, color)  
+    display_addr = add_to_display_mem(display_addr, program, flag_x)  
+    display_addr = add_to_display_mem(display_addr, program, flag_y)  
+    display_addr = add_to_display_mem(display_addr, program, flag_s)  
+    display_addr = add_to_display_mem(display_addr, program, flag_c)  
+    display_addr = add_to_display_mem(display_addr, program, 1)  
+
     return display_addr
 
 def add_to_display_mem(display_addr, program, item):
@@ -263,6 +290,7 @@ def mov(program, parts, instruction):
     arg1 = parts[1].replace("R", "") if not('0x' in parts[1]) else parts[1]
     flag1 = 0
     if '0x' in arg1: flag1 = 1
+    
     arg2 = parts[2].replace("R", "") if not('0x' in parts[2]) else parts[2]
     flag2 = 0
     if '0x' in arg2: flag2 = 1
