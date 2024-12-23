@@ -10,3 +10,8 @@ temp
 .git
 .venv
 codebase.txt
+exclude
+*.rom
+.clang-format
+.gitignore
+*.asm
