@@ -62,7 +62,9 @@ emu_run(PMX *pmx) {
                 quit = 1;
         }
         step(pmx);
-        display_update();
+        if (pmx_display.power == 1) {
+            display_update();
+        }
         mouse_update();
         // printf("x: %d, y: %d, btn:%d\n",pmx->dev[0x25], pmx->dev[0x26],
         // pmx->dev[0x27]);
@@ -87,7 +89,7 @@ main(int argc, char *args[]) {
     VariableTable variable_table;
     init_variable_table(&variable_table);
     init_pmx(&pmx, &variable_table);
-    initDisplay(600, 420, 0x000);
+    // initDisplay(600, 420, 0x000);
     init_mouse(600, 420);
     emu_run(&pmx);
     return 0;
