@@ -14,6 +14,8 @@ assembly_to_opcode = {
     "OVR": "0x12",
     "INC": "0x13",
     "DCR": "0x14",
+    "MUL": "0x15",
+    "DIV": "0x16",
     "MOV": "0x20",
     "STR": '0xAA',
     "DVO": "0xAF",
