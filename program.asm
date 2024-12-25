@@ -3,4 +3,7 @@ POT #2
 DIV ; testing new division opcode
 POT #10
 MUL ; testing new multiplication opcode
+SQRT
+POT #3
+POW
 HALT
