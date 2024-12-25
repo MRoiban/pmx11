@@ -320,8 +320,8 @@ goto_instruction(PMX *pmx) {
 
 void
 power(PMX *pmx) {
-    int value = pmx->wst[pmx->sp--];
     int power = pmx->wst[pmx->sp--];
+    int value = pmx->wst[pmx->sp--];
     pmx->wst[++pmx->sp] = (int)pow(value, power);
     pmx->pc += 1;
 }
@@ -408,10 +408,11 @@ const OpcodeMapping opcode_map[OPCODE_COUNT] = {
     {0x08, "LOAD R8"}, {0x09, "ADD"},     {0x0A, "SUB"},     {0x0B, "PUSH"},
     {0x0C, "POP"},     {0x0D, "EQUAL"},   {0x0E, "GTH"},     {0x0F, "LTH"},
     {0x10, "DUP"},     {0x11, "POT"},     {0x12, "OVR"},     {0x13, "INC"},
-    {0x14, "DCR"},     {0x15, "MUL"},     {0x16, "DIV"},     {0x20, "MOV"},
-    {0xAA, "STR"},     {0xAF, "DVO"},     {0xBF, "DVW"},     {0xCF, "SWAP"},
-    {0xDE, "GOTO"},    {0xDF, "JMP"},     {0xEE, "RMV"},     {0xEF, "JNZ"},
-    {0xFE, "RPC"},     {0xFF, "HALT"},
+    {0x14, "DCR"},     {0x15, "MUL"},     {0x16, "DIV"},     {0x17, "SQRT"},
+    {0x18, "POW"},     {0x19, "ABS"},     {0x20, "MOV"},     {0xAA, "STR"},
+    {0xAF, "DVO"},     {0xBF, "DVW"},     {0xCF, "SWAP"},    {0xDE, "GOTO"},
+    {0xDF, "JMP"},     {0xEE, "RMV"},     {0xEF, "JNZ"},     {0xFE, "RPC"},
+    {0xFF, "HALT"},
 };
 
 const char *
@@ -466,14 +467,16 @@ dump(PMX *pmx, int opcode) {
     fclose(file);
 }
 
-void mul(PMX *pmx) {
+void
+mul(PMX *pmx) {
     int a = pmx->wst[pmx->sp--];
     int b = pmx->wst[pmx->sp--];
     pmx->wst[++pmx->sp] = a * b;
     pmx->pc++;
 }
 
-void div_pmx(PMX *pmx) {
+void
+div_pmx(PMX *pmx) {
     int b = pmx->wst[pmx->sp--];
     int a = pmx->wst[pmx->sp--];
     pmx->wst[++pmx->sp] = a / b;
@@ -701,6 +704,15 @@ step(PMX *pmx) {
         break;
     case 0x16:
         div_pmx(pmx);
+        break;
+    case 0x17:
+        sqrt_instruction(pmx);
+        break;
+    case 0x18:
+        power(pmx);
+        break;
+    case 0x19:
+        abs_instruction(pmx);
         break;
     case 0x20:
         mov(pmx);
