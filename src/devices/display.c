@@ -160,7 +160,8 @@ drawBitmap(int i, int j, int index, int width, const char *bitmap[], int rows,
 
 // void
 // drawChar(int index, int x, int y, int scale, Uint32 color) {
-//     drawBitmap(x, y, index, 5, alphabet.bitmap, alphabet.height, alphabet.width,
+//     drawBitmap(x, y, index, 5, alphabet.bitmap, alphabet.height,
+//     alphabet.width,
 //                scale, color);
 // }
 
@@ -172,7 +173,7 @@ getAlphabetIndex(char letter) {
     return index;
 }
 
-int 
+int
 getNumberIndex(char digit) {
     // Calculate the index ('1' -> 0, '2' -> 1, ..., '9' -> 8, '0' -> 9)
     int index;
@@ -190,20 +191,18 @@ drawChar(char character, int x, int y, int scale, Uint32 color) {
     if (character >= 'A' && character <= 'Z') {
         // Character is a letter (A-Z)
         int index = getAlphabetIndex(character); // Convert to 0-based index
-        drawBitmap(x, y, index, 5, alphabet.bitmap, alphabet.height, alphabet.width,
-                   scale, color);
+        drawBitmap(x, y, index, 5, alphabet.bitmap, alphabet.height,
+                   alphabet.width, scale, color);
     } else if (character >= '0' && character <= '9') {
         // Character is a number (0-9)
         int index = getNumberIndex(character); // Convert to 0-based index
-        drawBitmap(x, y, index, 5, numbers.bitmap, numbers.height, numbers.width,
-                   scale, color);
+        drawBitmap(x, y, index, 5, numbers.bitmap, numbers.height,
+                   numbers.width, scale, color);
     } else {
         // Invalid character or space
         printf("Unsupported character: %c\n", character);
     }
 }
-
-
 
 void
 drawString(char string[], int x, int y, int scale, Uint32 color) {
@@ -274,16 +273,15 @@ display_update() {
     SDL_RenderPresent(renderer);
 }
 
-int 
-char_to_hex(char character) 
-{
+int
+char_to_hex(char character) {
     int hex;
     for (int i = 0; i < ALPHABET_NUMBER; i++) {
-            if (alphabet_map[i].UpLetter == character) {
-                hex = alphabet_map[i].hex;
-                break;
-            }
+        if (alphabet_map[i].UpLetter == character) {
+            hex = alphabet_map[i].hex;
+            break;
         }
+    }
     return hex;
 }
 

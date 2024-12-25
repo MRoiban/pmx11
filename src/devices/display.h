@@ -27,7 +27,7 @@ void
 display_update();
 void
 display_deo(PMX *pmx, Uint8 addr);
-int 
+int
 char_to_hex(char character);
 
 #endif
