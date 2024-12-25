@@ -34,7 +34,6 @@ emu_deo(PMX *pmx, Uint32 addr) {
         break;
     case 0x02:
         mouse_deo(pmx, addr);
-        printf("inside deo\n");
         break;
     default:
         break;
@@ -55,8 +54,7 @@ void
 emu_run(PMX *pmx) {
     SDL_Event e;
     int quit = 0;
-    load_program_from_file(pmx, "program.rom");
-
+    load_program_from_file(pmx, pmx->table, "program.rom");
     // MAIN LOOP
     while (!quit) {
         while (SDL_PollEvent(&e)) {
@@ -66,7 +64,8 @@ emu_run(PMX *pmx) {
         step(pmx);
         display_update();
         mouse_update();
-        printf("x: %d, y: %d\n",pmx->dev[0x25], pmx->dev[0x26]);
+        // printf("x: %d, y: %d, btn:%d\n",pmx->dev[0x25], pmx->dev[0x26],
+        // pmx->dev[0x27]);
         for (int i = 0; i < 256; i++) {
             if (pmx->dev[i] == 1) {
                 emu_deo(pmx, i);
@@ -78,13 +77,16 @@ emu_run(PMX *pmx) {
 
 int
 main(int argc, char *args[]) {
+    printf("init\n");
     FILE *file = fopen("./log.txt", "w");
     if (file == NULL) {
         perror("Error opening file");
         return 0;
     }
     PMX pmx;
-    init_pmx(&pmx);
+    VariableTable variable_table;
+    init_variable_table(&variable_table);
+    init_pmx(&pmx, &variable_table);
     initDisplay(600, 420, 0x000);
     init_mouse(600, 420);
     emu_run(&pmx);
