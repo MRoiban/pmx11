@@ -117,6 +117,10 @@ ret(PMX *pmx);
 void
 mov(PMX *pmx);
 void
+mul(PMX *pmx);
+void
+div_pmx(PMX *pmx);
+void
 run(PMX *pmx);
 void
 step(PMX *pmx);
