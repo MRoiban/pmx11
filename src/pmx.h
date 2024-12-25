@@ -7,11 +7,32 @@
 #define REGISTER_NUMBER (8)
 #define DISPLAY_SIZE (480000)
 #define DISPLAY_BLOCK (MEMORY_SIZE - DISPLAY_SIZE)
+#define MAX_VARIABLES (256)
+
+typedef enum {
+    CONSTANT,
+    REGISTER,
+    MEMORY,
+    DEV,
+} VariableType;
+
+typedef struct {
+    char name[32];
+    VariableType type;
+    int location;
+    int value;
+} Variable;
+
+typedef struct {
+    Variable variables[MAX_VARIABLES];
+    int count;
+} VariableTable;
 
 typedef struct {
     unsigned int *memory;
     unsigned int *wst; // Stack
     unsigned int *rst; // Stack
+    VariableTable* table;
     int sp;
     int rp;
     int pc;
@@ -23,7 +44,18 @@ typedef struct {
 } PMX;
 
 void
-init_pmx(PMX *pmx);
+init_pmx(PMX *pmx, VariableTable *table);
+void
+init_variable_table(VariableTable *table);
+void
+add_variable(VariableTable *table, const char *name, VariableType type,
+             int location, int value);
+Variable *
+get_variable(VariableTable *table, const char *name);
+int
+resolve_variable(PMX *pmx, Variable *var);
+void
+set_variable(PMX *pmx, Variable *var, int value);
 void
 load_program(PMX *pmx, int *program, int length);
 void
@@ -89,6 +121,8 @@ run(PMX *pmx);
 void
 step(PMX *pmx);
 void
-load_program_from_file(PMX *pmx, const char *filename);
+load_program_from_file(PMX *pmx, VariableTable *table, const char *filename);
+void
+load_variables(VariableTable *table, const char *filename);
 
 #endif // PMX_H

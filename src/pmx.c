@@ -39,7 +39,7 @@
 #include <string.h>
 
 void
-init_pmx(PMX *pmx) {
+init_pmx(PMX *pmx, VariableTable *table) {
     if (pmx == NULL) {
         fprintf(stderr, "Error: PMX pointer is NULL\n");
         return;
@@ -47,6 +47,7 @@ init_pmx(PMX *pmx) {
     pmx->memory = malloc(MEMORY_SIZE * sizeof(unsigned int));
     pmx->wst = malloc(MEMORY_SIZE * sizeof(unsigned int));
     pmx->rst = malloc(MEMORY_SIZE * sizeof(unsigned int));
+    pmx->table = table;
 
     if (!pmx->memory || !pmx->wst || !pmx->rst) {
         free(pmx->memory);
@@ -65,6 +66,70 @@ init_pmx(PMX *pmx) {
     pmx->pc = 0;
     pmx->time = 0;
     pmx->step = 0;
+}
+
+void
+init_variable_table(VariableTable *table) {
+    table->count = 0;
+}
+
+void
+add_variable(VariableTable *table, const char *name, VariableType type,
+             int location, int value) {
+    if (table->count >= MAX_VARIABLES) {
+        printf(stderr, "Error: Maximum variable limit reached\n");
+        return;
+    }
+    Variable *var = &table->variables[table->count++];
+    strncpy(var->name, name, sizeof(var->name));
+    var->type = type;
+    var->location = location;
+    var->value = value;
+}
+
+Variable *
+get_variable(VariableTable *table, const char *name) {
+    for (int i = 0; i < table->count; i++) {
+        if (strcmp(table->variables[i].name, name) == 0) {
+            return &table->variables[i];
+        }
+    }
+    return NULL;
+}
+
+int
+resolve_variable(PMX *pmx, Variable *var) {
+    switch (var->type) {
+    case CONSTANT:
+        return var->value;
+    case REGISTER:
+        return pmx->registers[var->location];
+    case MEMORY:
+        return pmx->memory[var->location];
+    case DEV:
+        return pmx->dev[var->location];
+    default:
+        fprintf(stderr, "Error: Unknown variable type\n");
+        return 0;
+    }
+}
+
+void
+set_variable(PMX *pmx, Variable *var, int value) {
+    switch (var->type) {
+    case CONSTANT:
+        fprintf(stderr, "Error: Cannot modify a constant\n");
+        break;
+    case REGISTER:
+        pmx->registers[var->location] = value;
+        break;
+    case MEMORY:
+        pmx->memory[var->location] = value;
+        break;
+    default:
+        fprintf(stderr, "Error: Unknown variable type\n");
+        break;
+    }
 }
 
 void
@@ -285,25 +350,47 @@ store(PMX *pmx) {
 
 void
 mov(PMX *pmx) {
-    int flag1 = pmx->memory[++pmx->pc];
-    int flag2 = pmx->memory[++pmx->pc];
-    int arg1 = pmx->memory[++pmx->pc];
-    int arg2 = pmx->memory[++pmx->pc];
-    printf("%d,%d,%d,%d\n", flag1, flag2, arg1, arg2);
-    
-    if (flag1 == 0) {
-        if (flag2 == 0) {
-            pmx->registers[arg2 - 1] = pmx->registers[arg1 - 1];
-        } else {
-            pmx->memory[arg2] = pmx->registers[arg1 - 1];
+    int flag1 = pmx->memory[++pmx->pc]; // Source type
+    int flag2 = pmx->memory[++pmx->pc]; // Destination type
+    int arg1 = pmx->memory[++pmx->pc];  // Source argument
+    int arg2 = pmx->memory[++pmx->pc];  // Destination argument
+    VariableTable* var_table = &pmx->table;
+    int value = 0;
+
+    // Resolve the source value
+    if (flag1 == 0) { // Source is a register
+        value = pmx->registers[arg1 - 1];
+    } else if (flag1 == 1) { // Source is memory
+        value = pmx->memory[arg1];
+    } else if (flag1 == 2) { // Source is a variable
+        Variable *var = get_variable(var_table, (const char *)arg1);
+        if (var == NULL) {
+            fprintf(stderr, "Error: Variable not found\n");
+            return;
         }
+        value = resolve_variable(pmx, var);
     } else {
-        if (flag2 == 0) {
-            pmx->registers[arg2 - 1] = pmx->memory[arg1];
-        } else {
-            pmx->memory[arg2] = pmx->memory[arg1];
-        }
+        fprintf(stderr, "Error: Unknown source flag\n");
+        return;
     }
+
+    // Assign the value to the destination
+    if (flag2 == 0) { // Destination is a register
+        pmx->registers[arg2 - 1] = value;
+    } else if (flag2 == 1) { // Destination is memory
+        pmx->memory[arg2] = value;
+    } else if (flag2 == 2) { // Destination is a variable
+        Variable *var = get_variable(var_table, (const char *)arg2);
+        if (var == NULL) {
+            fprintf(stderr, "Error: Variable not found\n");
+            return;
+        }
+        set_variable(pmx, var, value);
+    } else {
+        fprintf(stderr, "Error: Unknown destination flag\n");
+        return;
+    }
+
     pmx->pc++;
 }
 
@@ -525,6 +612,7 @@ step(PMX *pmx) {
         perror("Error opening file");
         return;
     }
+
     fclose(file);
     if (pmx->step < pmx->steps) {
         instruction = pmx->memory[pmx->pc];
@@ -651,57 +739,131 @@ step(PMX *pmx) {
 #define MAX_LINE_LENGTH 20000
 
 void
-load_program_from_file(PMX *pmx, const char *filename) {
+load_variables(VariableTable *table, const char *filename) {
     FILE *file = fopen(filename, "r");
-    if (file == NULL) {
-        printf("Failed to open file: %s\n", filename);
+    if (!file) {
+        fprintf(stderr, "Error: Could not open file %s\n", filename);
         return;
     }
 
-    // First pass: count the number of instructions
-    int program_size = 0;
-    char line[MAX_LINE_LENGTH];
-    while (fgets(line, sizeof(line), file) != NULL) {
-        char *token = strtok(line, ",");
-        while (token != NULL) {
-            program_size++;
-            token = strtok(NULL, ",");
+    char line[256];
+    int in_variables = 0;
+
+    while (fgets(line, sizeof(line), file)) {
+        if (strncmp(line, "VARIABLES", 9) == 0) {
+            in_variables = 1;
+            continue;
+        } else if (strncmp(line, "PROGRAM", 7) == 0) {
+            in_variables = 0;
+            break;
         }
-    }
 
-    // Allocate memory for the program
-    int *program = (int *)malloc(program_size * sizeof(int));
-    if (program == NULL) {
-        printf("Failed to allocate memory for program\n");
-        fclose(file);
-        return;
-    }
-
-    // Reset file pointer to the beginning
-    fseek(file, 0, SEEK_SET);
-
-    // Second pass: read the instructions
-    int index = 0;
-    while (fgets(line, sizeof(line), file) != NULL) {
-        char *token = strtok(line, ",");
-        while (token != NULL) {
+        if (in_variables) {
+            char name[32];
+            char type[16];
             int value;
-            if (strncmp(token, "0x", 2) == 0) {
-                sscanf(token, "%x", &value);
-            } else {
-                sscanf(token, "%d", &value);
+            sscanf(line, "%s %s %x", name, type, &value);
+
+            if (strcmp(type, "CONSTANT") == 0) {
+                add_variable(table, name, CONSTANT, 0, value);
+            } else if (strcmp(type, "REGISTER") == 0) {
+                add_variable(table, name, REGISTER, value, 0);
+            } else if (strcmp(type, "MEMORY") == 0) {
+                add_variable(table, name, MEMORY, value, 0);
             }
-            program[index++] = value;
-            token = strtok(NULL, ",");
         }
     }
 
     fclose(file);
+}
 
-    // Load the program into memory
-    pmx->registers[7] = program_size;
-    load_program(pmx, program, program_size);
+void
+load_program_from_file(PMX *pmx, VariableTable *table, const char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        fprintf(stderr, "Error: Could not open file %s\n", filename);
+        return;
+    }
+    char line[256];
+    int in_variables = 0;
+    int in_program = 0;
+    int program_index = 0;
 
-    // Free the allocated memory
-    free(program);
+    while (fgets(line, sizeof(line), file)) {
+        char *trimmed = strtok(line, "\n");
+        if (!trimmed)
+            continue; // Skip empty lines
+
+        if (strcmp(trimmed, "VARIABLES") == 0) {
+            in_variables = 1;
+            in_program = 0;
+            continue;
+        }
+
+        if (strcmp(trimmed, "PROGRAM") == 0) {
+            in_program = 1;
+            in_variables = 0;
+            continue;
+        }
+
+        if (in_variables) {
+            char name[32], type[16];
+            int value;
+
+            if (sscanf(trimmed, "%s %s %x", name, type, &value) != 3) {
+                fprintf(stderr, "Error: Invalid variable declaration '%s'\n",
+                        trimmed);
+                continue;
+            }
+
+            if (strcmp(type, "CONSTANT") == 0) {
+                add_variable(table, name, CONSTANT, 0, value);
+            } else if (strcmp(type, "REGISTER") == 0) {
+                add_variable(table, name, REGISTER, value, 0);
+            } else if (strcmp(type, "MEMORY") == 0) {
+                add_variable(table, name, MEMORY, value, 0);
+            } else {
+                fprintf(stderr, "Error: Unknown variable type '%s'\n", type);
+            }
+        }
+
+        if (in_program) {
+            char *token = strtok(trimmed, ",");
+            while (token) {
+                int instruction;
+
+                // Debugging
+                printf("Parsing token: %s\n", token);
+
+                // Parse as hexadecimal or decimal
+                if (strncmp(token, "0x", 2) == 0) {
+                    sscanf(token, "%x", &instruction); // Hexadecimal
+                } else {
+                    sscanf(token, "%d", &instruction); // Decimal
+                }
+
+                // Ensure valid memory boundaries
+                if (program_index >= MEMORY_SIZE) {
+                    fprintf(stderr, "Error: Program exceeds memory size\n");
+                    fclose(file);
+                    return;
+                }
+
+                // Store instruction in memory
+                pmx->memory[program_index++] = instruction;
+
+                // Next token
+                token = strtok(NULL, ",");
+            }
+        }
+    }
+
+    if (!in_variables && !in_program) {
+        fprintf(stderr,
+                "Error: Missing VARIABLES or PROGRAM section in input file\n");
+    }
+
+    fclose(file);
+    pmx->steps = program_index;
+    pmx->registers[7] = program_index; // Store program size
 }
