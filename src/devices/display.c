@@ -104,7 +104,8 @@ const ColorMapping colors_map[COLORS] = {
 PMXDisplay pmx_display = {
     .width = SCREEN_WIDTH,
     .height = SCREEN_HEIGHT,
-    .pixels = NULL // Initialize with the correct size
+    .pixels = NULL, // Initialize with the correct size
+    .power = 0,
 };
 static SDL_Window *window;
 static SDL_Renderer *renderer;
@@ -346,6 +347,10 @@ display_deo(PMX *pmx, Uint8 addr) {
     // printf("deo addr: %d\n", pmx->dev[addr]);
     switch (addr) {
     case 0x10:
+        if (pmx_display.power == 0) {
+            initDisplay(600, 420, 0x000);
+            pmx_display.power = 1;
+        }
         break;
     case 0x11:
         break;

@@ -18,6 +18,7 @@ typedef struct PMXDisplay {
     Uint32 palette[4];
     Uint16 *pixels;
     Uint8 *fg, *bg;
+    Uint8 power;
 } PMXDisplay;
 
 extern PMXDisplay pmx_display;
