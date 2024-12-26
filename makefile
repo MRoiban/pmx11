@@ -25,7 +25,7 @@ all: $(EXE)
 # Linking
 $(EXE): $(OBJS)
 	mkdir -p ./build
-	$(PYTHON) ./assemble.py
+	$(PYTHON) ./pmxAssembler.py
 	$(CC) $(OBJS) $(SDL) $(LDFLAGS) -o $(EXE)
 
 # Compilation rules
