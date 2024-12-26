@@ -17,7 +17,7 @@ else
 endif
 
 # Object files
-OBJS = pmx.o mouse.o display.o pmx11.o
+OBJS = utils.o pmx.o mouse.o display.o pmx11.o
 
 # Default target
 all: $(EXE)
@@ -27,6 +27,9 @@ $(EXE): $(OBJS)
 	mkdir -p ./build
 	$(PYTHON) ./pmxAssembler.py
 	$(CC) $(OBJS) $(SDL) $(LDFLAGS) -o $(EXE)
+
+utils.o: ./src/utils.h ./src/utils.c
+	$(CC) $(CFLAGS) -c ./src/utils.c -o utils.o
 
 # Compilation rules
 pmx.o: ./src/pmx.c ./src/pmx.h
