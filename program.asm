@@ -1,13 +1,16 @@
-    POT #10
-    POT #2
-    DIV     ; testing new division opcode
-    POT #10
-    MUL     ; testing new multiplication opcode
-    POT #3
-    POW
-    POT #1
-    DVW 0x10 ; Turn on the screen
-    POT #1
-    DVW 0x12 ; Draw char from mem
-    WCHR M, #9, #5, #4, 0xfff 
-    HALT
+
+POT #1
+DVW 0x10
+POT #1
+DVW 0x12
+
+// Draw something 
+WCHR M, #9, #5, #4, 0xfff
+WCHR A, #15, #5, #4, 0xfff
+WCHR T, #21, #5, #4, 0xfff
+WCHR E, #27, #5, #4, 0xfff
+WCHR U, #33, #5, #4, 0xfff
+WCHR S, #40, #5, #4, 0xfff
+WCHR Z, #46, #5, #4, 0xfff
+
+HALT
