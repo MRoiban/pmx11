@@ -456,7 +456,7 @@ dump(PMX *pmx, int opcode) {
                 pmx->registers[3], pmx->registers[4], pmx->registers[5],
                 pmx->registers[6], pmx->registers[7]);
         fprintf(file, "\t\tDISPLAY ADDR: [ ");
-        for (int i = DISPLAY_BLOCK; i <= DISPLAY_BLOCK + 100; i++) {
+        for (int i = DISPLAY_BLOCK; i <= DISPLAY_BLOCK + 50; i++) {
             fprintf(file, "%d ", pmx->memory[i]);
         }
         fprintf(file, "]\n");
