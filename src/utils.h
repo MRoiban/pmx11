@@ -7,4 +7,6 @@ typedef unsigned short Uint16;
 typedef signed short Sint16;
 typedef unsigned int Uint32;
 
+void print(const char* string);
+
 #endif
