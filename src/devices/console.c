@@ -8,6 +8,7 @@ PMXConsole pmx_console = {
     .scale = 1,
 };
 
-void init_console() {
+void 
+init_console() {
     
 }

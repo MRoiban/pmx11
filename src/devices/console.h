@@ -14,6 +14,7 @@ typedef struct PMXConsole
 
 extern PMXConsole pmx_console;
 
-void init_console();
+void 
+init_console();
 
 #endif 
