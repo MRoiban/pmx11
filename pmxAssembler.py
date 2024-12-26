@@ -411,5 +411,5 @@ def assemble(asm_file, rom_file):
     program = replace_variables(program, variables)
     write_rom_file(rom_file, program, variables)
 
-    if __name__ == "__main__":
-        assemble("program.asm", "program.rom")
+if __name__ == "__main__":
+    assemble("program.asm", "program.rom")
