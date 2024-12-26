@@ -9,6 +9,7 @@
 
 #include "./display.h"
 #include "../pmx.h"
+#include "../utils.h"
 #include <SDL.h>
 #include <stdio.h>
 
@@ -191,7 +192,7 @@ void
 drawChar(char character, int x, int y, int scale, Uint32 color) {
     if (character >= 'A' && character <= 'Z') {
         // Character is a letter (A-Z)
-        int index = getAlphabetIndex(character); // Convert to 0-based index
+        int index = getAlphabetIndex(character) + 1; // Convert to 0-based index
         drawBitmap(x, y, index, 5, alphabet.bitmap, alphabet.height,
                    alphabet.width, scale, color);
     } else if (character >= '0' && character <= '9') {
@@ -334,7 +335,7 @@ drawChar_mem(PMX *pmx) {
         } else {
             color = pmx->memory[addr + 4];
         }
-        // int index = getAlphabetIndex(*c) + 1;
+
         drawChar(*c, x, y, scale, color);
 
         addr += 10;
