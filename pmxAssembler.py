@@ -193,6 +193,7 @@ def unary_instrucition(program, variables, parts, instruction):
     elif '0x' in reg:
         reg_num = reg
     else:
+        print("hey")
         reg_num = variables[reg]
                 
     program.append(assembly_to_opcode[instruction])
@@ -249,8 +250,9 @@ def add_to_display_mem(display_addr, program, item):
     return display_addr
 
 def label_instruction(program, variables, parts, pc):
-    var = parts[1]
-    variables[var] = len(program) + pc
+    name = parts[1]
+    variables[name] = {"type": "constant", "value": len(program)+pc, "location": None}
+    
 
 def import_instruction(program, variables, parts):
     file = parts[1].strip('"')
@@ -372,10 +374,10 @@ def replace_variables(program, variables):
     # print(variables)
     for i in range(len(program)):
         if "@" in str(program[i]):
-            program[i] = str(variables[program[i]])
+            program[i] = str(variables[program[i]]["value"])
             
         elif program[i] in variables:
-            program[i] = str(variables[program[i]])
+            program[i] = str(variables[program[i]]["value"])
         
         else:
             program[i] = str(program[i])
