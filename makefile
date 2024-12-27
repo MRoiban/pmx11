@@ -44,6 +44,13 @@ mouse.o: ./src/devices/mouse.c ./src/devices/mouse.h
 pmx11.o: ./src/pmx11.c
 	$(CC) $(CFLAGS) $(SDL) -c ./src/pmx11.c -o pmx11.o
 
+start:
+	clear
+	make clean-all
+	make
+	make clean-objects
+	./build/pmx11
+
 # Clean rules
 clean-all:
 	$(RM) $(EXE) $(OBJS)
