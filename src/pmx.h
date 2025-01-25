@@ -9,10 +9,10 @@
 #define DISPLAY_BLOCK (MEMORY_SIZE - DISPLAY_SIZE)
 #define MAX_VARIABLES (256)
 
-#define POKE(pmx,i,j) pmx->memory[i] = j;
-#define POKE2(pmx,i,j) pmx->dev[i] = j;
-#define PEEK(pmx, i) pmx->memory[i];
-#define PEEK2(pmx, i) pmx->dev[i];
+#define POKE(pmx,i,j) pmx->memory[i] = j
+#define POKE2(pmx,i,j) pmx->dev[i] = j
+#define PEEK(pmx, i) pmx->memory[i]
+#define PEEK2(pmx, i) pmx->dev[i]
 
 
 typedef enum {
