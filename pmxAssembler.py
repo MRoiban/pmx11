@@ -1,7 +1,15 @@
-from icecream import ic
 assembly_to_opcode = {
     "HALT": "0x00",
-    "LOAD": {"R1": "0x01", "R2": "0x02", "R3": "0x03", "R4": "0x04","R5": "0x05","R6": "0x06","R7": "0x07","R8": "0x08"},
+    "LOAD": {
+        "R1": "0x01",
+        "R2": "0x02",
+        "R3": "0x03",
+        "R4": "0x04",
+        "R5": "0x05",
+        "R6": "0x06",
+        "R7": "0x07",
+        "R8": "0x08",
+    },
     "ADD": "0x09",
     "SUB": "0x0A",
     "PUSH": "0x0B",
@@ -20,7 +28,7 @@ assembly_to_opcode = {
     "POW": "0x18",
     "ABS": "0x19",
     "MOV": "0x20",
-    "STR": '0xAA',
+    "STR": "0xAA",
     "DVO": "0xAF",
     "DVW": "0xBF",
     "SWAP": "0xCF",
@@ -30,7 +38,6 @@ assembly_to_opcode = {
     "RMV": "0xEE",
     "RPC": "0xFE",
     "RET": "0xFF",
-
 }
 
 char_to_hex = {
@@ -70,64 +77,110 @@ char_to_hex = {
     "7": "0x22",
     "8": "0x23",
     "9": "0x24",
-    "0": "0x25"
+    "0": "0x25",
 }
 
 def assembler_START(lines, display_addr):
     program = []
     variables = {}
-    count = 0
-    for line in lines:
-        if len(line.strip()) == 0:  # Skip empty lines
-            continue
-        
-        # Remove inline comments starting with ';'
-        line = line.split(';', 1)[0].strip()
-        
-        # Split by spaces for parsing
-        parts = line.strip().split()
-        if not parts:
-            continue  # Skip if line becomes empty after comment removal
-        
-        instruction = parts[0]
-        
-        if instruction.startswith("//"):  # Skip full-line comments
-            continue
-        
-        # Handle specific instructions
-        if instruction == "#START":
-            continue
-        if instruction == "#END":
-            return program, variables, count, display_addr
-        
-        _, _, display_addr = parse_instructions(display_addr, program, variables, parts, instruction)
-        count += 1
+    instruction_count = 0
     
-    return program, variables, count, display_addr
+    for line in lines:
+        # Skip empty lines and get content before comments
+        line = line.split(";", 1)[0].strip()
+        if not line or line.startswith("//"): 
+            continue
+
+        tokens = line.split()
+        if not tokens:
+            continue
+
+        instruction = tokens[0]
+        
+        # Handle special directives
+        if instruction in ["#START", "#END"]:
+            if instruction == "#END":
+                return program, variables, instruction_count, display_addr
+            continue
+
+        # Process regular instructions
+        _, _, display_addr = parse_instructions(display_addr, program, variables, tokens, instruction)
+        instruction_count += 1
+
+    return program, variables, instruction_count, display_addr
+
+# def assembler_STARTS(lines, display_addr):
+#     program = []
+#     variables = {}
+#     count = 0
+#     for line in lines:
+#         if len(line.strip()) == 0:  # Skip empty lines
+#             continue
+
+#         # Remove inline comments starting with ';'
+#         line = line.split(";", 1)[0].strip()
+
+#         # Split by spaces for parsing
+#         parts = line.strip().split()
+#         if not parts:
+#             continue  # Skip if line becomes empty after comment removal
+
+#         instruction = parts[0]
+
+#         if instruction.startswith("//"):  # Skip full-line comments
+#             continue
+
+#         # Handle specific instructions
+#         if instruction == "#START":
+#             continue
+#         if instruction == "#END":
+#             return program, variables, count, display_addr
+
+#         _, _, display_addr = parse_instructions(
+#             display_addr, program, variables, parts, instruction
+#         )
+#         count += 1
+
+#     return program, variables, count, display_addr
+
+def assemble_parser(input_string):
+    result = ''
+    current_token = ''
+    
+    for char in input_string:
+        current_token += char
+        if 'ox01' in current_token:
+            result += 'var'
+            current_token = ''
+        elif current_token.strip() and not any(x in current_token for x in 'ox01'):
+            current_token = ''
+            
+    return result.strip()
+
 
 def assembler(asm_file, variables, pc=0):
     display_addr = 0x2AD00
     count = 0
     with open(asm_file, "r") as file:
         lines = file.readlines()
-    
+
     program = []
     end_program = []
     assembled = None
-    
+
     for line in lines:
         # Remove inline comments starting with ';'
-        line = line.split(';', 1)[0].strip()
-        
+        line = line.split(";", 1)[0].strip()
+
         if len(line) == 0:  # Skip empty or commented lines
             continue
-        
+
         parts = line.split()
         instruction = parts[0]
-        
+
         if instruction.startswith("//"):  # Skip full-line comments
             continue
-        
+
         if instruction == "#START":
             if count is None:
                 count = 0
@@ -142,9 +195,11 @@ def assembler(asm_file, variables, pc=0):
             count = None
         if instruction == "#END":
             continue
-        
-        _, _, display_addr = parse_instructions(display_addr, program, variables, parts, instruction, pc)
-    
+
+        _, _, display_addr = parse_instructions(
+            display_addr, program, variables, parts, instruction, pc
+        )
+
     program += end_program
     return program, variables
 
@@ -152,30 +207,49 @@ def assembler(asm_file, variables, pc=0):
 def parse_instructions(display_addr, program, variables, parts, instruction, pc=0):
     if instruction == "#END":
         return program, variables
-    
-    if instruction in ["LOAD","MOV", "PUSH", "POP", "SWAP", "DVW", "POT", 'DVO', 'VAR', 'LABEL', "CALL", "WCHR", "WSTR", "IMPORT"]:
+
+    if instruction in [
+        "LOAD",
+        "MOV",
+        "PUSH",
+        "POP",
+        "SWAP",
+        "DVW",
+        "POT",
+        "DVO",
+        "VAR",
+        "LABEL",
+        "CALL",
+        "WCHR",
+        "WSTR",
+        "IMPORT",
+        "JMP",
+    ]:
         if instruction == "LOAD":
             load_instruction(program, variables, parts, instruction)
-        elif instruction == 'VAR':
+        elif instruction == "VAR":
             var_instruction(variables, parts)
-        elif instruction == 'CALL':
+        elif instruction == "CALL":
             call_instruction(program, parts)
-        elif instruction == 'IMPORT':
+        elif instruction == "IMPORT":
             variables = import_instruction(program, variables, parts)
-        elif instruction == 'LABEL':
+        elif instruction == "LABEL":
             label_instruction(program, variables, parts, pc)
-        elif instruction == 'WCHR':
+        elif instruction == "WCHR":
             display_addr = wchr_instruction(display_addr, program, parts)
-        elif instruction in ["PUSH", "POP", "DVW", "POT",'DVO']:
-            unary_instrucition(program, variables, parts, instruction)
+        elif instruction == "WSTR":
+            display_addr = wstr_instruction(display_addr, program, parts)
+        elif instruction in ["PUSH", "POP", "DVW", "POT", "DVO", "JMP"]:
+            unary_instruction(program, variables, parts, instruction)
         elif instruction in ["SWAP"]:
             swap_instruction(program, parts, instruction)
-        elif instruction == 'MOV':
+        elif instruction == "MOV":
             mov(program, parts, instruction, variables)
     else:
         if instruction in assembly_to_opcode:
             program.append(assembly_to_opcode[instruction])
     return program, variables, display_addr
+
 
 def swap_instruction(program, parts, instruction):
     reg1 = parts[1].replace("R", "")
@@ -184,61 +258,63 @@ def swap_instruction(program, parts, instruction):
     program.append(reg1)
     program.append(reg2)
 
-def unary_instrucition(program, variables, parts, instruction):
+
+def unary_instruction(program, variables, parts, instruction):
     reg = parts[1]
-    if not(reg in variables):
-        reg_num = reg.replace("R", "") if "R" in reg else reg.replace("#", "")
-    elif '@' in reg:
-        reg_num = reg
-    elif '0x' in reg:
-        reg_num = reg
-    else:
-        print("hey")
+    reg_num = reg
+
+    if reg not in variables:
+        reg_num = reg.replace("R", "").replace("#", "")
+    elif not ("@" in reg or "0x" in reg):
         reg_num = variables[reg]
-                
-    program.append(assembly_to_opcode[instruction])
-    program.append(reg_num)
+
+    program.extend([assembly_to_opcode[instruction], reg_num])
+
 
 def wchr_instruction(display_addr, program, parts):
-    char = parts[1].strip(',')  # Strip commas or other unwanted characters
-    char_hex = char_to_hex[char]
+    char = parts[1].strip(",")
+    if char == "":
+        return ...
 
-    x = parts[2].replace("R", "") if not('#' in parts[2]) else parts[2]
-    flag_x = 1
-    if '#' in x: 
-        flag_x = 0
-        x = parts[2].replace("#", "")
-    # print(x)
-    
-    y = parts[3].replace("R", "") if not('#' in parts[3]) else parts[3]
-    flag_y = 1
-    if '#' in y: 
-        flag_y = 0
-        y = parts[3].replace("#", "")
-    
-    scale = parts[4].replace("R", "") if not('#' in parts[4]) else parts[4]
-    flag_s = 1
-    if '#' in scale: 
-        flag_s = 0
-        scale = parts[4].replace("#", "")
-    
-    color = parts[5].replace("R", "") if not('0x' in parts[5]) else parts[5]
-    flag_c = 1
-    if '0x' in color: flag_c = 0
-    # color = parts[5].replace("0x", "")
-    
+    char_hex = char_to_hex[char]
+    params = []
+    flags = []
+
+    for i, part in enumerate(parts[2:6], 2):
+        is_register = not any(x in part for x in ['#', '$', '0x'])
+        value = part.replace('R', '').replace('#', '')
+        
+        if i == 5:  # Handle color parameter separately
+            flags.append(0 if '0x' in part else 1)
+        else:
+            flags.append(1 if is_register else 0)
+        params.append(value)
+
+    # Add all values to display memory
     display_addr = add_to_display_mem(display_addr, program, char_hex)
-    display_addr = add_to_display_mem(display_addr, program, x)
-    display_addr = add_to_display_mem(display_addr, program, y)
-    display_addr = add_to_display_mem(display_addr, program, scale)
-    display_addr = add_to_display_mem(display_addr, program, color)  
-    display_addr = add_to_display_mem(display_addr, program, flag_x)  
-    display_addr = add_to_display_mem(display_addr, program, flag_y)  
-    display_addr = add_to_display_mem(display_addr, program, flag_s)  
-    display_addr = add_to_display_mem(display_addr, program, flag_c)  
-    display_addr = add_to_display_mem(display_addr, program, 1)  
+    for param in params:
+        display_addr = add_to_display_mem(display_addr, program, param)
+    for flag in flags:
+        display_addr = add_to_display_mem(display_addr, program, flag)
+    display_addr = add_to_display_mem(display_addr, program, 1)
 
     return display_addr
+
+
+def wstr_instruction(display_addr, program, parts):
+    string, x, y, scale, color = (parts[1], 
+                                  int(parts[2].strip('#,').strip()), 
+                                  parts[3], 
+                                  int(parts[4].strip('#,').strip()), 
+                                  parts[5])
+    
+    for i, char in enumerate(string):
+        offset = (scale * i) + ((i * scale) / 2 if i > 0 else 0)
+        str_x = f"#{int(x + offset)}"
+        display_addr = wchr_instruction(display_addr, program, [None, char, str_x, y, f"#{scale}", color])
+    
+    return display_addr
+
 
 def add_to_display_mem(display_addr, program, item):
     program.append(assembly_to_opcode["POT"])
@@ -249,10 +325,11 @@ def add_to_display_mem(display_addr, program, item):
     program.append(assembly_to_opcode["STR"])
     return display_addr
 
+
 def label_instruction(program, variables, parts, pc):
     name = parts[1]
-    variables[name] = {"type": "constant", "value": len(program)+pc, "location": None}
-    
+    variables[name] = {"type": "constant", "value": len(program) + pc, "location": None}
+
 
 def import_instruction(program, variables, parts):
     file = parts[1].strip('"')
@@ -261,16 +338,19 @@ def import_instruction(program, variables, parts):
     variables = {**variables, **assembled[1]}
     return variables
 
+
 def goto_instruction(program, parts, instruction):
     operand = parts[1]
     program.append(assembly_to_opcode[instruction])
     program.append(str(operand))
 
+
 def call_instruction(program, parts):
     reg = parts[1]
     program.append("0x11")
     program.append(reg)
-    program.append("0xDE") #? doesnt GOTO need a param?
+    program.append("0xDE")  # ? doesnt GOTO need a param?
+
 
 def var_instruction(variables, parts):
     """
@@ -280,25 +360,36 @@ def var_instruction(variables, parts):
     value = parts[2]
 
     if value.startswith("#"):  # Constant value
-        variables[name] = {"type": "constant", "value": int(value.replace("#", "")), "location": None}
+        variables[name] = {
+            "type": "constant",
+            "value": int(value.replace("#", "")),
+            "location": None,
+        }
     elif value.startswith("R"):  # Register
-        variables[name] = {"type": "register", "location": int(value.replace("R", "")), "value": None}
+        variables[name] = {
+            "type": "register",
+            "location": int(value.replace("R", "")),
+            "value": None,
+        }
     elif value.startswith("@"):  # Memory address
-        variables[name] = {"type": "memory", "location": int(value.replace("@", ""), 16), "value": None}
+        variables[name] = {
+            "type": "memory",
+            "location": int(value.replace("@", ""), 16),
+            "value": None,
+        }
     else:
         raise ValueError(f"Invalid variable declaration: {value}")
 
 
-
 def load_instruction(program, variables, parts, instruction):
-    opcode = assembly_to_opcode[instruction][parts[1]]
-    if not(parts[2] in variables) and not('0x' in parts[2]):
+    opcode = assembly_to_opcode[instruction][parts[1].replace(",", "")]
+    if not (parts[2] in variables) and not ("0x" in parts[2]):
         operand = int(parts[2].replace("#", ""))
     else:
         ost = []
         vst = []
         size = len(parts)
-        operand = variables[parts[2]] if not('0x' in parts[2]) else parts[2]
+        operand = variables[parts[2]] if not ("0x" in parts[2]) else parts[2]
         # TODO: this snippet was used for basic arithmetics with vars when using load, it's ugly asf
         # if size > 3:
         #     for i in range(1,size-2):
@@ -308,7 +399,7 @@ def load_instruction(program, variables, parts, instruction):
         #             ost.append('+')
         #         else:
         #             vst.append(int(parts[2+i]))
-                        
+
         #     ost_len = len(ost)
         #     for i in range(ost_len):
         #         a = vst.pop()
@@ -320,54 +411,26 @@ def load_instruction(program, variables, parts, instruction):
     program.append(opcode)
     program.append(str(operand))
 
+
 def mov(program, parts, instruction, variables):
-    """
-    Implements the MOV instruction with support for constants, variables, registers, and memory.
-    """
     opcode = assembly_to_opcode[instruction]
+    
+    def parse_operand(op, allow_immediate=True):
+        if op in variables:
+            value = variables[op].get("location") or variables[op]["value"]
+            return 2, value
+        elif op.startswith("R"):
+            return 0, op.replace("R", "")
+        elif op.startswith("@"):
+            return 1, op.replace("@", "")
+        elif op.startswith("#") and allow_immediate:
+            return 3, int(op.replace("#", ""))
+        raise ValueError(f"Invalid operand: {op}")
 
-    # Determine the source
-    src = parts[1]
-    if src in variables:  # Variable as source
-        src_flag = 2
-        src_value = variables[src].get("location")
-        if src_value is None:  # Use the value directly for constants
-            src_value = variables[src]["value"]
-    elif src.startswith("R"):  # Register as source
-        src_flag = 0
-        src_value = src.replace("R", "")
-    elif src.startswith("@"):  # Memory as source
-        src_flag = 1
-        src_value = src.replace("@", "")
-    elif src.startswith("#"):  # Immediate value
-        src_flag = 3
-        src_value = int(src.replace("#", ""))  # Immediate values are directly encoded
-    else:
-        raise ValueError(f"Invalid source for MOV: {src}")
-
-    # Determine the destination
-    dest = parts[2]
-    if dest in variables:  # Variable as destination
-        dest_flag = 2
-        dest_value = variables[dest].get("location")
-        if dest_value is None:  # Use the value directly for constants
-            dest_value = variables[dest]["value"]
-    elif dest.startswith("R"):  # Register as destination
-        dest_flag = 0
-        dest_value = dest.replace("R", "")
-    elif dest.startswith("@"):  # Memory as destination
-        dest_flag = 1
-        dest_value = dest.replace("@", "")
-    else:
-        raise ValueError(f"Invalid destination for MOV: {dest}")
-
-    # Append the MOV instruction to the program
-    program.append(opcode)
-    program.append(src_flag)
-    program.append(dest_flag)
-    program.append(src_value)
-    program.append(dest_value)
-
+    src_flag, src_value = parse_operand(parts[1])
+    dest_flag, dest_value = parse_operand(parts[2], allow_immediate=False)
+    
+    program.extend([opcode, src_flag, dest_flag, src_value, dest_value])
 
 
 def replace_variables(program, variables):
@@ -375,15 +438,14 @@ def replace_variables(program, variables):
     for i in range(len(program)):
         if "@" in str(program[i]):
             program[i] = str(variables[program[i]]["value"])
-            
+
         elif program[i] in variables:
             program[i] = str(variables[program[i]]["value"])
-        
+
         else:
             program[i] = str(program[i])
     return program
-            
-    
+
 
 def write_rom_file(rom_file, program, variables):
     """
@@ -406,12 +468,12 @@ def write_rom_file(rom_file, program, variables):
             file.write(f"{instruction}\n")
 
 
-
 def assemble(asm_file, rom_file):
     variables = {}
     program, variables = assembler(asm_file, variables)
     program = replace_variables(program, variables)
     write_rom_file(rom_file, program, variables)
 
+
 if __name__ == "__main__":
-    assemble("program.asm", "program.rom")
+    assemble("program.asm", "./build/program.rom")
