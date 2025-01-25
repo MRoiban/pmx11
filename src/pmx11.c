@@ -5,6 +5,8 @@
 
 #include "./devices/display.h"
 #include "./devices/mouse.h"
+#include "./devices/console.h"
+#include "./devices/file.h"
 #include "./pmx.h"
 #include <SDL.h>
 #include <stdio.h>
@@ -28,12 +30,16 @@ emu_deo(PMX *pmx, Uint32 addr) {
 
     switch (lv) {
     case 0x00:
+        console_deo(pmx, addr);
         break;
     case 0x01:
         display_deo(pmx, addr);
         break;
     case 0x02:
         mouse_deo(pmx, addr);
+        break;
+    case 0x03:
+        file_deo(pmx, addr);
         break;
     default:
         break;
@@ -54,7 +60,7 @@ void
 emu_run(PMX *pmx) {
     SDL_Event e;
     int quit = 0;
-    load_program_from_file(pmx, pmx->table, "program.rom");
+    load_program_from_file(pmx, pmx->table, "./build/program.rom");
     // MAIN LOOP
     while (!quit) {
         while (SDL_PollEvent(&e)) {
@@ -66,6 +72,7 @@ emu_run(PMX *pmx) {
             display_update();
         }
         mouse_update();
+
         // printf("x: %d, y: %d, btn:%d\n",pmx->dev[0x25], pmx->dev[0x26],
         // pmx->dev[0x27]);
         for (int i = 0; i < 256; i++) {
