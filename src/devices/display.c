@@ -439,7 +439,7 @@ drawChar_mem(PMX *pmx) {
         if (flags != 0) {
             scale = pmx->registers[pmx->memory[addr + 3] - 1];
         } else {
-            scale = pmx->memory[addr + 3];
+            scale = PEEK(pmx, addr+3);
         }
         if (flagc != 0) {
             color = pmx->registers[pmx->memory[addr + 4] - 1];
