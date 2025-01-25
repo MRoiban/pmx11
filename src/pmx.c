@@ -214,8 +214,8 @@ halt(PMX *pmx, int running) {
 }
 
 void
-jump(PMX *pmx) {
-    pmx->pc = pmx->wst[pmx->sp--];
+jump(PMX *pmx, int pc) {
+    pmx->pc = pc;
 }
 
 void
@@ -229,7 +229,7 @@ void
 jump_if_not_zero(PMX *pmx) {
     int condition = pmx->wst[pmx->sp--];
     if (condition != 0) {
-        jump(pmx);
+        jump(pmx,pmx->wst[pmx->sp--]);
     } else {
         pmx->pc += 1;
     }
@@ -269,16 +269,7 @@ swap(PMX *pmx) {
     pmx->pc += 3;
 }
 
-// TODO: Move to console.c
-void
-console_deo(PMX *pmx, int addr) {
-    if (addr == 24) {
-        fprintf(stderr, "%d\n", pmx->dev[addr]);
-    } else if (addr == 25) {
-        printf("%d\n", pmx->dev[addr]);
-    }
-    pmx->pc += 2;
-}
+
 
 void
 increase(PMX *pmx) {
@@ -315,7 +306,7 @@ goto_instruction(PMX *pmx) {
     pmx->wst[++pmx->sp] = pmx->pc + 1;
     over(pmx);
 
-    jump(pmx);
+    jump(pmx, pmx->wst[pmx->sp--]);
 }
 
 void
@@ -589,7 +580,7 @@ run(PMX *pmx) {
             goto_instruction(pmx);
             break;
         case 0xDF:
-            jump(pmx);
+            jump(pmx, pmx->memory[pmx->pc + 1]);
             break;
         case 0xEE:
             remove_top_of_stack(pmx);
@@ -739,7 +730,7 @@ step(PMX *pmx) {
         goto_instruction(pmx);
         break;
     case 0xDF:
-        jump(pmx);
+        jump(pmx, pmx->memory[pmx->pc + 1]);
         break;
     case 0xEE:
         remove_top_of_stack(pmx);
@@ -843,7 +834,7 @@ load_program_from_file(PMX *pmx, VariableTable *table, const char *filename) {
             char name[32], type[16];
             int value;
 
-            if (sscanf(trimmed, "%s %s %x", name, type, &value) != 3) {
+            if (sscanf(trimmed, "%s %s %d", name, type, &value) != 3) {
                 fprintf(stderr, "Error: Invalid variable declaration '%s'\n",
                         trimmed);
                 continue;
@@ -865,15 +856,24 @@ load_program_from_file(PMX *pmx, VariableTable *table, const char *filename) {
             while (token) {
                 int instruction;
 
-                // Debugging
-                printf("Parsing token: %s\n", token);
-
                 // Parse as hexadecimal or decimal
                 if (strncmp(token, "0x", 2) == 0) {
                     sscanf(token, "%x", &instruction); // Hexadecimal
                 } else {
                     sscanf(token, "%d", &instruction); // Decimal
                 }
+                if (strncmp(token, "$", 1) == 0) {
+                    Variable *var =
+                        get_variable(table, token + 1); // Skip "var_" prefix
+                    if (var != NULL) {
+                        instruction = var->value;
+                    } else {
+                        fprintf(stderr, "Error: Variable %s not found\n",
+                                token);
+                    }
+                }
+                // Debugging
+                // printf("Parsing token: %d\n", instruction);
 
                 // Ensure valid memory boundaries
                 if (program_index >= MEMORY_SIZE) {
