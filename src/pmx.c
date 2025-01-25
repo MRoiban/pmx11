@@ -41,6 +41,7 @@
 #define WST(i) pmx->wst[i]
 #define PC pmx->pc
 #define SP pmx->sp
+#define R pmx->registers
 #define increase(pmx) WST(SP)++; PC++
 #define decrease(pmx) WST(SP)--; PC++
 #define remove_top_of_stack(pmx) SP--; PC++
@@ -48,16 +49,16 @@
 #define add(pmx) WST(++SP)=WST(SP--)+WST(SP--);PC++
 #define sub(pmx) WST(++SP)=WST(SP--)-WST(SP--);PC++
 #define duplicate(pmx) WST(SP++) = WST(SP);SP++; PC++
-#define load(pmx, reg, value) if (reg >= 1 && reg <= REGISTER_NUMBER) pmx->registers[reg - 1] = value; PC += 2
+#define load(pmx, reg, value) if (reg >= 1 && reg <= REGISTER_NUMBER) R[reg - 1] = value; PC += 2
 #define read_pc(pmx) WST(++SP) = PC; PC++
-#define push(pmx, reg) if (reg >= 1 && reg <= REGISTER_NUMBER) WST(++SP) = pmx->registers[reg - 1]; PC += 2
-#define pop(pmx, reg) if (reg >= 1 && reg <= REGISTER_NUMBER) pmx->registers[reg - 1] = WST(SP--); PC += 2
+#define push(pmx, reg) if (reg >= 1 && reg <= REGISTER_NUMBER) WST(++SP) = R[reg - 1]; PC += 2
+#define pop(pmx, reg) if (reg >= 1 && reg <= REGISTER_NUMBER) R[reg - 1] = WST(SP--); PC += 2
 #define jump(pmx, pc) PC = pc
 #define over(pmx) WST(SP++) = WST(SP--);SP += 1;PC++
 #define equal(pmx) WST(SP--);WST(++SP) = (WST(SP--) == WST(SP--)) ? 0 : 1;PC++
 #define greater_than(pmx) WST(++SP) = (WST(SP--) > WST(SP--)) ? 0 : 1;PC++
 #define lower_than(pmx) WST(++SP) = (WST(SP--) < WST(SP--)) ? 0 : 1;PC++
-#define swap(pmx) {int reg1 = WST(SP--);int reg2 = WST(SP--);int temp = pmx->registers[reg1 - 1];pmx->registers[reg1 - 1] = pmx->registers[reg2 - 1];pmx->registers[reg2 - 1] = temp;PC += 3;}
+#define swap(pmx) {int reg1 = WST(SP--);int reg2 = WST(SP--);int temp = R[reg1 - 1];R[reg1 - 1] = R[reg2 - 1];R[reg2 - 1] = temp;PC += 3;}
 #define put_on_top_of_stack(pmx, value) WST(++SP) = value;PC += 2
 #define goto_instruction(pmx) WST(++SP) = PC + 1;over(pmx);jump(pmx, WST(SP--))
 #define power(pmx) WST(++SP) = (int)pow(WST(SP--), WST(SP--));PC++
@@ -88,7 +89,7 @@ init_pmx(PMX *pmx, VariableTable *table) {
     memset(pmx->memory, 0, MEMORY_SIZE * sizeof(unsigned int));
     memset(pmx->wst, 0, MEMORY_SIZE * sizeof(unsigned int));
     memset(pmx->rst, 0, MEMORY_SIZE * sizeof(unsigned int));
-    memset(pmx->registers, 0, REGISTER_NUMBER * sizeof(int));
+    memset(R, 0, REGISTER_NUMBER * sizeof(int));
 
     SP = -1;
     pmx->rp = -1;
@@ -132,7 +133,7 @@ resolve_variable(PMX *pmx, Variable *var) {
     case CONSTANT:
         return var->value;
     case REGISTER:
-        return pmx->registers[var->location];
+        return R[var->location];
     case MEMORY:
         return pmx->memory[var->location];
     case DEV:
@@ -150,7 +151,7 @@ set_variable(PMX *pmx, Variable *var, int value) {
         fprintf(stderr, "Error: Cannot modify a constant\n");
         break;
     case REGISTER:
-        pmx->registers[var->location] = value;
+        R[var->location] = value;
         break;
     case MEMORY:
         pmx->memory[var->location] = value;
@@ -176,11 +177,11 @@ unload_program(PMX *pmx) {
     pmx->rp = -1;
 
     // Clear the program memory
-    for (int i = 0; i < pmx->registers[7]; i++) {
+    for (int i = 0; i < R[7]; i++) {
         PEEK(pmx, i) = 0;
     }
 
-    pmx->registers[7] = 0;
+    R[7] = 0;
 }
 
 
@@ -228,7 +229,7 @@ mov(PMX *pmx) {
 
     // Resolve the source value
     if (flag1 == 0) { // Source is a register
-        value = pmx->registers[arg1 - 1];
+        value = R[arg1 - 1];
     } else if (flag1 == 1) { // Source is memory
         value = pmx->memory[arg1];
     } else if (flag1 == 2) { // Source is a variable
@@ -245,7 +246,7 @@ mov(PMX *pmx) {
 
     // Assign the value to the destination
     if (flag2 == 0) { // Destination is a register
-        pmx->registers[arg2 - 1] = value;
+        R[arg2 - 1] = value;
     } else if (flag2 == 1) { // Destination is memory
         pmx->memory[arg2] = value;
     } else if (flag2 == 2) { // Destination is a variable
@@ -321,9 +322,9 @@ dump(PMX *pmx, int opcode) {
         fprintf(file, "]\n");
         fprintf(file,
                 "\t\tR1=%d, R2=%d, R3=%d, R4=%d, R5=%d, R6=%d, R7=%d, R8=%d\n",
-                pmx->registers[0], pmx->registers[1], pmx->registers[2],
-                pmx->registers[3], pmx->registers[4], pmx->registers[5],
-                pmx->registers[6], pmx->registers[7]);
+                R[0], R[1], R[2],
+                R[3], R[4], R[5],
+                R[6], R[7]);
         fprintf(file, "\t\tDISPLAY ADDR: [ ");
         for (int i = DISPLAY_BLOCK; i <= DISPLAY_BLOCK + 50; i++) {
             fprintf(file, "%d ", pmx->memory[i]);
@@ -756,5 +757,5 @@ load_program_from_file(PMX *pmx, VariableTable *table, const char *filename) {
 
     fclose(file);
     pmx->steps = program_index;
-    pmx->registers[7] = program_index; // Store program size
+    R[7] = program_index; // Store program size
 }
