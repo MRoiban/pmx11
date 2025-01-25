@@ -19,6 +19,7 @@ typedef struct PMXDisplay {
     Uint16 *pixels;
     Uint8 *fg, *bg;
     Uint8 power;
+    Uint8 bool_update;
 } PMXDisplay;
 
 extern PMXDisplay pmx_display;
