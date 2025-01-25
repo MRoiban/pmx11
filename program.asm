@@ -26,5 +26,7 @@ POT #1
 DVW 0x13
 
 WSTR BILAL12, #9, #5, #4, 0xfff
+POT #1
+
 
 HALT
