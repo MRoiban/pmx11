@@ -10,6 +10,7 @@ PMXMouse pmx_mouse = {
 void init_mouse(int w, int h) {
     pmx_mouse.x = w/2;
     pmx_mouse.y = h/2;
+    SDL_ShowCursor(SDL_DISABLE);
 }
 
 void mouse_update() {
