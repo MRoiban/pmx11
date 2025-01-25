@@ -77,7 +77,7 @@ pop(PMX *pmx, int reg);
 int
 halt(PMX *pmx, int running);
 void
-jump(PMX *pmx);
+jump(PMX *pmx, int pc);
 void
 over(PMX *pmx);
 void
