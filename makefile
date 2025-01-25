@@ -1,7 +1,7 @@
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c11
-
+_CFLAGS = -Wall -Wextra -std=c11
+CFLAGS = -std=c11
 # Platform-specific variables
 ifeq ($(OS), Windows_NT)
     SDL = -IC:\mingw_dev_lib\include\SDL2 -LC:\mingw_dev_lib\lib -lmingw32 -lSDL2main -lSDL2
@@ -17,7 +17,7 @@ else
 endif
 
 # Object files
-OBJS = utils.o pmx.o mouse.o display.o pmx11.o
+OBJS = utils.o pmx.o console.o mouse.o file.o display.o pmx11.o
 
 # Default target
 all: $(EXE)
@@ -38,8 +38,14 @@ pmx.o: ./src/pmx.c ./src/pmx.h
 display.o: ./src/devices/display.c ./src/devices/display.h
 	$(CC) $(CFLAGS) $(SDL) -c ./src/devices/display.c -o display.o
 
+console.o: ./src/devices/console.c ./src/devices/console.h
+	$(CC) $(CFLAGS) -c ./src/devices/console.c -o console.o
+
 mouse.o: ./src/devices/mouse.c ./src/devices/mouse.h
 	$(CC) $(CFLAGS) $(SDL) -c ./src/devices/mouse.c -o mouse.o
+
+file.o: ./src/devices/file.c ./src/devices/file.h
+	$(CC) $(CFLAGS) $(SDL) -c ./src/devices/file.c -o file.o
 
 pmx11.o: ./src/pmx11.c
 	$(CC) $(CFLAGS) $(SDL) -c ./src/pmx11.c -o pmx11.o
