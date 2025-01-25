@@ -38,6 +38,24 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define WST(i) pmx->wst[i]
+#define PC pmx->pc
+#define SP pmx->sp
+#define increase(pmx) WST(SP)++; PC++
+#define decrease(pmx) WST(SP)--; PC++
+#define remove_top_of_stack(pmx) SP--; PC++
+#define dev_write(pmx, addr) PEEK2(pmx, addr) = WST(SP--); PC += 2
+#define add(pmx) WST(++SP)=WST(SP--)+WST(SP--);PC++
+#define sub(pmx) WST(++SP)=WST(SP--)-WST(SP--);PC++
+#define duplicate(pmx) WST(SP++) = WST(SP);SP++; PC++
+#define load(pmx, reg, value) if (reg >= 1 && reg <= REGISTER_NUMBER) pmx->registers[reg - 1] = value; PC += 2
+#define read_pc(pmx) WST(++SP) = PC; PC++
+#define push(pmx, reg) if (reg >= 1 && reg <= REGISTER_NUMBER) WST(++SP) = pmx->registers[reg - 1]; PC += 2
+#define pop(pmx, reg) if (reg >= 1 && reg <= REGISTER_NUMBER) pmx->registers[reg - 1] = WST(SP--); PC += 2
+#define jump(pmx, pc) PC = pc
+#define over(pmx) WST(SP++) = WST(SP--);SP += 1;PC++
+#define equal(pmx) WST(SP--);WST(++SP) = (WST(SP--) == WST(SP--)) ? 0 : 1;PC++
+
 void
 init_pmx(PMX *pmx, VariableTable *table) {
     if (pmx == NULL) {
@@ -61,9 +79,9 @@ init_pmx(PMX *pmx, VariableTable *table) {
     memset(pmx->rst, 0, MEMORY_SIZE * sizeof(unsigned int));
     memset(pmx->registers, 0, REGISTER_NUMBER * sizeof(int));
 
-    pmx->sp = -1;
+    SP = -1;
     pmx->rp = -1;
-    pmx->pc = 0;
+    PC = 0;
     pmx->time = 0;
     pmx->step = 0;
 }
@@ -136,76 +154,28 @@ void
 load_program(PMX *pmx, int *program, int length) {
     pmx->steps = length;
     for (int i = 0; i < length; i++) {
-        pmx->memory[i] = program[i];
+        PEEK(pmx, i) = program[i];
     }
 }
 
 void
 unload_program(PMX *pmx) {
-    pmx->pc = 0;
-    pmx->sp = -1;
+    PC = 0;
+    SP = -1;
     pmx->rp = -1;
 
     // Clear the program memory
     for (int i = 0; i < pmx->registers[7]; i++) {
-        pmx->memory[i] = 0;
+        PEEK(pmx, i) = 0;
     }
 
     pmx->registers[7] = 0;
 }
 
-void
-add(PMX *pmx) {
-    int a = pmx->wst[pmx->sp--];
-    int b = pmx->wst[pmx->sp--];
-    pmx->wst[++pmx->sp] = a + b;
-    pmx->pc += 1;
-}
 
-void
-sub(PMX *pmx) {
-    int a = pmx->wst[pmx->sp--];
-    int b = pmx->wst[pmx->sp--];
-    pmx->wst[++pmx->sp] = a - b;
-    pmx->pc += 1;
-}
 
-void
-duplicate(PMX *pmx) {
-    pmx->wst[pmx->sp + 1] = pmx->wst[pmx->sp];
-    pmx->sp += 1;
-    pmx->pc += 1;
-}
 
-void
-load(PMX *pmx, int reg, int value) {
-    if (reg >= 1 && reg <= REGISTER_NUMBER) {
-        pmx->registers[reg - 1] = value;
-    }
-    pmx->pc += 2;
-}
 
-void
-read_pc(PMX *pmx) {
-    pmx->wst[++pmx->sp] = pmx->pc;
-    pmx->pc += 1;
-}
-
-void
-push(PMX *pmx, int reg) {
-    if (reg >= 1 && reg <= REGISTER_NUMBER) {
-        pmx->wst[++pmx->sp] = pmx->registers[reg - 1];
-    }
-    pmx->pc += 2;
-}
-
-void
-pop(PMX *pmx, int reg) {
-    if (reg >= 1 && reg <= REGISTER_NUMBER) {
-        pmx->registers[reg - 1] = pmx->wst[pmx->sp--];
-    }
-    pmx->pc += 2;
-}
 
 int
 halt(PMX *pmx, int running) {
@@ -213,138 +183,101 @@ halt(PMX *pmx, int running) {
     return 0;
 }
 
-void
-jump(PMX *pmx, int pc) {
-    pmx->pc = pc;
-}
-
-void
-over(PMX *pmx) {
-    pmx->wst[pmx->sp + 1] = pmx->wst[pmx->sp - 1];
-    pmx->sp += 1;
-    pmx->pc += 1;
-}
 
 void
 jump_if_not_zero(PMX *pmx) {
-    int condition = pmx->wst[pmx->sp--];
+    int condition = WST(SP--);
     if (condition != 0) {
-        jump(pmx,pmx->wst[pmx->sp--]);
+        jump(pmx,WST(SP--));
     } else {
-        pmx->pc += 1;
+        PC++;
     }
 }
 
-void
-equal(PMX *pmx) {
-    int co1 = pmx->wst[pmx->sp--];
-    int co2 = pmx->wst[pmx->sp--];
-    pmx->wst[++pmx->sp] = (co1 == co2) ? 0 : 1;
-    pmx->pc += 1;
-}
+
 
 void
 greater_than(PMX *pmx) {
-    int co1 = pmx->wst[pmx->sp--];
-    int co2 = pmx->wst[pmx->sp--];
-    pmx->wst[++pmx->sp] = (co1 > co2) ? 0 : 1;
-    pmx->pc += 1;
+    int co1 = WST(SP--);
+    int co2 = WST(SP--);
+    WST(++SP) = (co1 > co2) ? 0 : 1;
+    PC++;
 }
 
 void
 lower_than(PMX *pmx) {
-    int co1 = pmx->wst[pmx->sp--];
-    int co2 = pmx->wst[pmx->sp--];
-    pmx->wst[++pmx->sp] = (co1 < co2) ? 0 : 1;
-    pmx->pc += 1;
+    int co1 = WST(SP--);
+    int co2 = WST(SP--);
+    WST(++SP) = (co1 < co2) ? 0 : 1;
+    PC++;
 }
 
 void
 swap(PMX *pmx) {
-    int reg1 = pmx->wst[pmx->sp--];
-    int reg2 = pmx->wst[pmx->sp--];
+    int reg1 = WST(SP--);
+    int reg2 = WST(SP--);
     int temp = pmx->registers[reg1 - 1];
     pmx->registers[reg1 - 1] = pmx->registers[reg2 - 1];
     pmx->registers[reg2 - 1] = temp;
-    pmx->pc += 3;
+    PC += 3;
 }
 
 
 
-void
-increase(PMX *pmx) {
-    pmx->wst[pmx->sp]++;
-    pmx->pc += 1;
-}
 
-void
-decrease(PMX *pmx) {
-    pmx->wst[pmx->sp]--;
-    pmx->pc += 1;
-}
 
-void
-remove_top_of_stack(PMX *pmx) {
-    pmx->sp--;
-    pmx->pc += 1;
-}
 
-void
-dev_write(PMX *pmx, int addr) {
-    pmx->dev[addr] = pmx->wst[pmx->sp--];
-    pmx->pc += 2;
-}
 
 void
 put_on_top_of_stack(PMX *pmx, unsigned int value) {
-    pmx->wst[++pmx->sp] = value;
-    pmx->pc += 2;
+    WST(++SP) = value;
+    PC += 2;
 }
 
 void
 goto_instruction(PMX *pmx) {
-    pmx->wst[++pmx->sp] = pmx->pc + 1;
+    WST(++SP) = PC + 1;
     over(pmx);
 
-    jump(pmx, pmx->wst[pmx->sp--]);
+    jump(pmx, WST(SP--));
 }
 
 void
 power(PMX *pmx) {
-    int power = pmx->wst[pmx->sp--];
-    int value = pmx->wst[pmx->sp--];
-    pmx->wst[++pmx->sp] = (int)pow(value, power);
-    pmx->pc += 1;
+    int power = WST(SP--);
+    int value = WST(SP--);
+    WST(++SP) = (int)pow(value, power);
+    PC++;
 }
 
 void
 sqrt_instruction(PMX *pmx) {
-    int value = pmx->wst[pmx->sp--];
-    pmx->wst[++pmx->sp] = (int)sqrt(value);
-    pmx->pc += 1;
+    int value = WST(SP--);
+    WST(++SP) = (int)sqrt(value);
+    PC++;
 }
 
 void
 abs_instruction(PMX *pmx) {
-    int value = pmx->wst[pmx->sp--];
-    pmx->wst[++pmx->sp] = abs(value);
-    pmx->pc += 1;
+    int value = WST(SP--);
+    WST(++SP) = abs(value);
+    PC++;
 }
 
 void
 store(PMX *pmx) {
-    unsigned int addr = pmx->wst[pmx->sp--];
-    int value = pmx->wst[pmx->sp--];
+    unsigned int addr = WST(SP--);
+    int value = WST(SP--);
     pmx->memory[addr] = value;
-    pmx->pc += 1;
+    PC++;
 }
 
 void
 mov(PMX *pmx) {
-    int flag1 = pmx->memory[++pmx->pc]; // Source type
-    int flag2 = pmx->memory[++pmx->pc]; // Destination type
-    int arg1 = pmx->memory[++pmx->pc];  // Source argument
-    int arg2 = pmx->memory[++pmx->pc];  // Destination argument
+    int flag1 = pmx->memory[++PC]; // Source type
+    int flag2 = pmx->memory[++PC]; // Destination type
+    int arg1 = pmx->memory[++PC];  // Source argument
+    int arg2 = pmx->memory[++PC];  // Destination argument
     VariableTable *var_table = &pmx->table;
     int value = 0;
 
@@ -382,7 +315,7 @@ mov(PMX *pmx) {
         return;
     }
 
-    pmx->pc++;
+    PC++;
 }
 
 typedef struct {
@@ -429,10 +362,10 @@ dump(PMX *pmx, int opcode) {
     // Write the PMX state to the file
 
     if (opcode != 0x00) {
-        fprintf(file, "(%d) \tOPCODE: %x (%s)\n", pmx->pc, opcode,
+        fprintf(file, "(%d) \tOPCODE: %x (%s)\n", PC, opcode,
                 get_assembly_instruction(opcode));
         fprintf(file, "\t\tWST: [ ");
-        for (int i = 0; i <= pmx->sp; i++) {
+        for (int i = 0; i <= SP; i++) {
             fprintf(file, "%d ", pmx->wst[i]);
         }
         fprintf(file, "]\n");
@@ -460,24 +393,24 @@ dump(PMX *pmx, int opcode) {
 
 void
 mul(PMX *pmx) {
-    int a = pmx->wst[pmx->sp--];
-    int b = pmx->wst[pmx->sp--];
-    pmx->wst[++pmx->sp] = a * b;
-    pmx->pc++;
+    int a = WST(SP--);
+    int b = WST(SP--);
+    WST(++SP) = a * b;
+    PC++;
 }
 
 void
 div_pmx(PMX *pmx) {
-    int b = pmx->wst[pmx->sp--];
-    int a = pmx->wst[pmx->sp--];
-    pmx->wst[++pmx->sp] = a / b;
-    pmx->pc++;
+    int b = WST(SP--);
+    int a = WST(SP--);
+    WST(++SP) = a / b;
+    PC++;
 }
 
 void
 ret(PMX *pmx) {
-    pmx->rst[++pmx->rp] = pmx->wst[pmx->sp--];
-    pmx->pc++;
+    pmx->rst[++pmx->rp] = WST(SP--);
+    PC++;
 }
 
 void
@@ -492,35 +425,35 @@ run(PMX *pmx) {
     fclose(file);
 
     while (running) {
-        int instruction = pmx->memory[pmx->pc];
+        int instruction = pmx->memory[PC];
         // printf("%x\n",instruction);
         switch (instruction) {
         case 0x00:
             running = halt(pmx, running);
             break;
         case 0x01:
-            load(pmx, 1, pmx->memory[pmx->pc + 1]);
+            load(pmx, 1, pmx->memory[PC + 1]);
             break;
         case 0x02:
-            load(pmx, 2, pmx->memory[pmx->pc + 1]);
+            load(pmx, 2, pmx->memory[PC + 1]);
             break;
         case 0x03:
-            load(pmx, 3, pmx->memory[pmx->pc + 1]);
+            load(pmx, 3, pmx->memory[PC + 1]);
             break;
         case 0x04:
-            load(pmx, 4, pmx->memory[pmx->pc + 1]);
+            load(pmx, 4, pmx->memory[PC + 1]);
             break;
         case 0x05:
-            load(pmx, 5, pmx->memory[pmx->pc + 1]);
+            load(pmx, 5, pmx->memory[PC + 1]);
             break;
         case 0x06:
-            load(pmx, 6, pmx->memory[pmx->pc + 1]);
+            load(pmx, 6, pmx->memory[PC + 1]);
             break;
         case 0x07:
-            load(pmx, 7, pmx->memory[pmx->pc + 1]);
+            load(pmx, 7, pmx->memory[PC + 1]);
             break;
         case 0x08:
-            load(pmx, 8, pmx->memory[pmx->pc + 1]);
+            load(pmx, 8, pmx->memory[PC + 1]);
             break;
         case 0x09:
             add(pmx);
@@ -529,10 +462,10 @@ run(PMX *pmx) {
             sub(pmx);
             break;
         case 0x0B:
-            push(pmx, pmx->memory[pmx->pc + 1]);
+            push(pmx, pmx->memory[PC + 1]);
             break;
         case 0x0C:
-            pop(pmx, pmx->memory[pmx->pc + 1]);
+            pop(pmx, pmx->memory[PC + 1]);
             break;
         case 0x0D:
             equal(pmx);
@@ -544,7 +477,7 @@ run(PMX *pmx) {
             duplicate(pmx);
             break;
         case 0x11:
-            put_on_top_of_stack(pmx, pmx->memory[pmx->pc + 1]);
+            put_on_top_of_stack(pmx, pmx->memory[PC + 1]);
             break;
         case 0x12:
             over(pmx);
@@ -571,16 +504,16 @@ run(PMX *pmx) {
             store(pmx);
             break;
         case 0xAF:
-            console_deo(pmx, pmx->memory[pmx->pc + 1]);
+            console_deo(pmx, pmx->memory[PC + 1]);
             break;
         case 0xBF:
-            dev_write(pmx, pmx->memory[pmx->pc + 1]);
+            dev_write(pmx, pmx->memory[PC + 1]);
             break;
         case 0xDE:
             goto_instruction(pmx);
             break;
         case 0xDF:
-            jump(pmx, pmx->memory[pmx->pc + 1]);
+            jump(pmx, pmx->memory[PC + 1]);
             break;
         case 0xEE:
             remove_top_of_stack(pmx);
@@ -624,7 +557,7 @@ step(PMX *pmx) {
 
     fclose(file);
     if (pmx->step < pmx->steps) {
-        instruction = pmx->memory[pmx->pc];
+        instruction = pmx->memory[PC];
         pmx->step++;
     } else {
         instruction = 0x00;
@@ -634,28 +567,28 @@ step(PMX *pmx) {
         running = halt(pmx, running);
         break;
     case 0x01:
-        load(pmx, 1, pmx->memory[pmx->pc + 1]);
+        load(pmx, 1, pmx->memory[PC + 1]);
         break;
     case 0x02:
-        load(pmx, 2, pmx->memory[pmx->pc + 1]);
+        load(pmx, 2, pmx->memory[PC + 1]);
         break;
     case 0x03:
-        load(pmx, 3, pmx->memory[pmx->pc + 1]);
+        load(pmx, 3, pmx->memory[PC + 1]);
         break;
     case 0x04:
-        load(pmx, 4, pmx->memory[pmx->pc + 1]);
+        load(pmx, 4, pmx->memory[PC + 1]);
         break;
     case 0x05:
-        load(pmx, 5, pmx->memory[pmx->pc + 1]);
+        load(pmx, 5, pmx->memory[PC + 1]);
         break;
     case 0x06:
-        load(pmx, 6, pmx->memory[pmx->pc + 1]);
+        load(pmx, 6, pmx->memory[PC + 1]);
         break;
     case 0x07:
-        load(pmx, 7, pmx->memory[pmx->pc + 1]);
+        load(pmx, 7, pmx->memory[PC + 1]);
         break;
     case 0x08:
-        load(pmx, 8, pmx->memory[pmx->pc + 1]);
+        load(pmx, 8, pmx->memory[PC + 1]);
         break;
     case 0x09:
         add(pmx);
@@ -664,10 +597,10 @@ step(PMX *pmx) {
         sub(pmx);
         break;
     case 0x0B:
-        push(pmx, pmx->memory[pmx->pc + 1]);
+        push(pmx, pmx->memory[PC + 1]);
         break;
     case 0x0C:
-        pop(pmx, pmx->memory[pmx->pc + 1]);
+        pop(pmx, pmx->memory[PC + 1]);
         break;
     case 0x0D:
         equal(pmx);
@@ -679,7 +612,7 @@ step(PMX *pmx) {
         duplicate(pmx);
         break;
     case 0x11:
-        put_on_top_of_stack(pmx, pmx->memory[pmx->pc + 1]);
+        put_on_top_of_stack(pmx, pmx->memory[PC + 1]);
         break;
     case 0x12:
         over(pmx);
@@ -721,16 +654,16 @@ step(PMX *pmx) {
         store(pmx);
         break;
     case 0xAF:
-        console_deo(pmx, pmx->memory[pmx->pc + 1]);
+        console_deo(pmx, pmx->memory[PC + 1]);
         break;
     case 0xBF:
-        dev_write(pmx, pmx->memory[pmx->pc + 1]);
+        dev_write(pmx, pmx->memory[PC + 1]);
         break;
     case 0xDE:
         goto_instruction(pmx);
         break;
     case 0xDF:
-        jump(pmx, pmx->memory[pmx->pc + 1]);
+        jump(pmx, pmx->memory[PC + 1]);
         break;
     case 0xEE:
         remove_top_of_stack(pmx);
