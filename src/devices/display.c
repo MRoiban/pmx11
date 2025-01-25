@@ -288,7 +288,8 @@ drawString(char string[], int x, int y, int scale, Uint32 color) {
         if (string[i] == ' ') {
             index = 0;
         } else {
-            index = getAlphabetIndex(string[i]) + 1; // +1 because I've assigned 0 to space!
+            index = getAlphabetIndex(string[i]) +
+                    1; // +1 because I've assigned 0 to space!
         }
         drawChar(index, x, y, scale, color);
         x += 6;
@@ -349,10 +350,12 @@ initDisplay(int w, int h, Uint32 bg) {
 /**
  * @brief Update the display
  */
-void display_update() {
+void
+display_update() {
     if (pmx_display.bool_update) {
         // Check if an update is necessary
-        if (SDL_UpdateTexture(texture, NULL, pmx_display.pixels, SCREEN_WIDTH * sizeof(Uint16)) != 0) {
+        if (SDL_UpdateTexture(texture, NULL, pmx_display.pixels,
+                              SCREEN_WIDTH * sizeof(Uint16)) != 0) {
             // Handle error
             fprintf(stderr, "Failed to update texture: %s\n", SDL_GetError());
             return;
@@ -362,12 +365,13 @@ void display_update() {
         SDL_RenderClear(renderer);
         if (SDL_RenderCopy(renderer, texture, NULL, NULL) != 0) {
             // Handle error
-            fprintf(stderr, "Failed to copy texture to renderer: %s\n", SDL_GetError());
+            fprintf(stderr, "Failed to copy texture to renderer: %s\n",
+                    SDL_GetError());
             return;
         }
         SDL_RenderPresent(renderer);
 
-        pmx_display.bool_update = 0;  // Reset the update flag
+        pmx_display.bool_update = 0; // Reset the update flag
     }
 }
 
@@ -472,10 +476,13 @@ display_deo(PMX *pmx, Uint8 addr) {
         drawRect(0, 0, 600, 800, 1, 0x000);
         drawChar_mem(pmx);
         break;
-    case 0x13:
-        drawBitmap(pmx->dev[0x25] / 2, pmx->dev[0x26] / 2, 0, cursor.width,
-                   cursor.bitmap, cursor.height, cursor.width, 2, 0xfff);
+    case 0x13: {
+        int x = PEEK2(pmx, 0x25);
+        int y = PEEK2(pmx, 0x26);
+        drawBitmap(x / 2, y / 2, 0, cursor.width, cursor.bitmap, cursor.height,
+                   cursor.width, 2, 0xfff);
         break;
+    }
     default:
         break;
     }
