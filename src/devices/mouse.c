@@ -35,9 +35,9 @@ void
 mouse_deo(PMX *pmx, Uint8 addr) {
     switch (addr) {
     case 0x20:
-        pmx->dev[0x25] = pmx_mouse.x;
-        pmx->dev[0x26] = pmx_mouse.y;
-        pmx->dev[0x27] = pmx_mouse.buttons;
+        POKE2(pmx, 0x25, pmx_mouse.x);
+        POKE2(pmx, 0x26, pmx_mouse.y);
+        POKE2(pmx, 0x27, pmx_mouse.buttons);
         break;
     case 0x21:
         break;
