@@ -66,66 +66,16 @@ void
 load_program(PMX *pmx, int *program, int length);
 void
 unload_program(PMX *pmx);
-void
-add(PMX *pmx);
-void
-sub(PMX *pmx);
-void
-duplicate(PMX *pmx);
-void
-load(PMX *pmx, int reg, int value);
-void
-read_pc(PMX *pmx);
-void
-push(PMX *pmx, int reg);
-void
-pop(PMX *pmx, int reg);
 int
 halt(PMX *pmx, int running);
 void
-jump(PMX *pmx, int pc);
-void
-over(PMX *pmx);
-void
 jump_if_not_zero(PMX *pmx);
-void
-equal(PMX *pmx);
-void
-greater_than(PMX *pmx);
-void
-lower_than(PMX *pmx);
-void
-swap(PMX *pmx);
 void
 console_deo(PMX *pmx, int addr);
 void
-increase(PMX *pmx);
-void
-decrease(PMX *pmx);
-void
-remove_top_of_stack(PMX *pmx);
-void
-dev_write(PMX *pmx, int addr);
-void
-put_on_top_of_stack(PMX *pmx, unsigned int value);
-void
-goto_instruction(PMX *pmx);
-void
-power(PMX *pmx);
-void
-sqrt_instruction(PMX *pmx);
-void
-abs_instruction(PMX *pmx);
-void
 store(PMX *pmx);
 void
-ret(PMX *pmx);
-void
 mov(PMX *pmx);
-void
-mul(PMX *pmx);
-void
-div_pmx(PMX *pmx);
 void
 run(PMX *pmx);
 void
