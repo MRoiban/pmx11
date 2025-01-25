@@ -405,46 +405,46 @@ drawChar_mem(PMX *pmx) {
     int y;
     int scale;
     Uint32 color;
-    while (addr < DISPLAY_SIZE && pmx->memory[addr] != 0) {
+    while (addr < DISPLAY_SIZE && PEEK(pmx, addr) != 0) {
         char *c = NULL;
         for (int i = 0; i < ALPHABET_NUMBER; i++) {
-            if (alphabet_map[i].hex == pmx->memory[addr]) {
+            if (alphabet_map[i].hex == PEEK(pmx, addr)) {
                 c = alphabet_map[i].UpLetter;
                 break;
             }
         }
 
-        if (pmx->memory[addr + 9] != 1)
+        if (PEEK(pmx, addr+9) != 1)
             break;
 
         if (c == NULL)
             break;
 
-        int flagx = pmx->memory[addr + 1 + 4];
-        int flagy = pmx->memory[addr + 2 + 4];
-        int flags = pmx->memory[addr + 3 + 4];
-        int flagc = pmx->memory[addr + 4 + 4];
-        int done = pmx->memory[addr + 5 + 4];
+        int flagx = PEEK(pmx, addr + 5);
+        int flagy = PEEK(pmx, addr + 6);
+        int flags = PEEK(pmx, addr + 7);
+        int flagc = PEEK(pmx, addr + 8);
+        int done = PEEK(pmx, addr + 9);
 
         if (flagx != 0) {
-            x = pmx->registers[pmx->memory[addr + 1] - 1];
+            x = pmx->registers[PEEK(pmx, addr + 1) - 1];
         } else {
-            x = pmx->memory[addr + 1];
+            x = PEEK(pmx, addr + 1);
         }
         if (flagy != 0) {
-            y = pmx->registers[pmx->memory[addr + 2] - 1];
+            y = pmx->registers[PEEK(pmx, addr + 2) - 1];
         } else {
-            y = pmx->memory[addr + 2];
+            y = PEEK(pmx, addr + 2);
         }
         if (flags != 0) {
-            scale = pmx->registers[pmx->memory[addr + 3] - 1];
+            scale = pmx->registers[PEEK(pmx, addr + 3) - 1];
         } else {
-            scale = PEEK(pmx, addr+3);
+            scale = PEEK(pmx, addr + 3);
         }
         if (flagc != 0) {
-            color = pmx->registers[pmx->memory[addr + 4] - 1];
+            color = pmx->registers[PEEK(pmx, addr + 4) - 1];
         } else {
-            color = pmx->memory[addr + 4];
+            color = PEEK(pmx, addr + 4);
         }
 
         drawChar(*c, x, y, scale, color);
