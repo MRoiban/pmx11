@@ -55,6 +55,17 @@
 #define jump(pmx, pc) PC = pc
 #define over(pmx) WST(SP++) = WST(SP--);SP += 1;PC++
 #define equal(pmx) WST(SP--);WST(++SP) = (WST(SP--) == WST(SP--)) ? 0 : 1;PC++
+#define greater_than(pmx) WST(++SP) = (WST(SP--) > WST(SP--)) ? 0 : 1;PC++
+#define lower_than(pmx) WST(++SP) = (WST(SP--) < WST(SP--)) ? 0 : 1;PC++
+#define swap(pmx) {int reg1 = WST(SP--);int reg2 = WST(SP--);int temp = pmx->registers[reg1 - 1];pmx->registers[reg1 - 1] = pmx->registers[reg2 - 1];pmx->registers[reg2 - 1] = temp;PC += 3;}
+#define put_on_top_of_stack(pmx, value) WST(++SP) = value;PC += 2
+#define goto_instruction(pmx) WST(++SP) = PC + 1;over(pmx);jump(pmx, WST(SP--))
+#define power(pmx) WST(++SP) = (int)pow(WST(SP--), WST(SP--));PC++
+#define sqrt_instruction(pmx) WST(++SP) = (int)sqrt(WST(SP--));PC++
+#define abs_instruction(pmx) WST(++SP) = abs(WST(SP--));PC++
+#define mul(pmx) WST(++SP) = WST(SP--) * WST(SP--);PC++
+#define div_pmx(pmx) WST(++SP) = WST(SP--) / WST(SP--);PC++
+#define ret(pmx) pmx->rst[++pmx->rp] = WST(SP--);PC++
 
 void
 init_pmx(PMX *pmx, VariableTable *table) {
@@ -196,73 +207,7 @@ jump_if_not_zero(PMX *pmx) {
 
 
 
-void
-greater_than(PMX *pmx) {
-    int co1 = WST(SP--);
-    int co2 = WST(SP--);
-    WST(++SP) = (co1 > co2) ? 0 : 1;
-    PC++;
-}
 
-void
-lower_than(PMX *pmx) {
-    int co1 = WST(SP--);
-    int co2 = WST(SP--);
-    WST(++SP) = (co1 < co2) ? 0 : 1;
-    PC++;
-}
-
-void
-swap(PMX *pmx) {
-    int reg1 = WST(SP--);
-    int reg2 = WST(SP--);
-    int temp = pmx->registers[reg1 - 1];
-    pmx->registers[reg1 - 1] = pmx->registers[reg2 - 1];
-    pmx->registers[reg2 - 1] = temp;
-    PC += 3;
-}
-
-
-
-
-
-
-
-void
-put_on_top_of_stack(PMX *pmx, unsigned int value) {
-    WST(++SP) = value;
-    PC += 2;
-}
-
-void
-goto_instruction(PMX *pmx) {
-    WST(++SP) = PC + 1;
-    over(pmx);
-
-    jump(pmx, WST(SP--));
-}
-
-void
-power(PMX *pmx) {
-    int power = WST(SP--);
-    int value = WST(SP--);
-    WST(++SP) = (int)pow(value, power);
-    PC++;
-}
-
-void
-sqrt_instruction(PMX *pmx) {
-    int value = WST(SP--);
-    WST(++SP) = (int)sqrt(value);
-    PC++;
-}
-
-void
-abs_instruction(PMX *pmx) {
-    int value = WST(SP--);
-    WST(++SP) = abs(value);
-    PC++;
-}
 
 void
 store(PMX *pmx) {
@@ -391,27 +336,7 @@ dump(PMX *pmx, int opcode) {
     fclose(file);
 }
 
-void
-mul(PMX *pmx) {
-    int a = WST(SP--);
-    int b = WST(SP--);
-    WST(++SP) = a * b;
-    PC++;
-}
 
-void
-div_pmx(PMX *pmx) {
-    int b = WST(SP--);
-    int a = WST(SP--);
-    WST(++SP) = a / b;
-    PC++;
-}
-
-void
-ret(PMX *pmx) {
-    pmx->rst[++pmx->rp] = WST(SP--);
-    PC++;
-}
 
 void
 run(PMX *pmx) {
