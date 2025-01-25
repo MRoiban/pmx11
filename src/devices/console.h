@@ -1,10 +1,9 @@
-#include "../pmx.h"
-
 #ifndef PMX_CONSOLE
 #define PMX_CONSOLE
 
-typedef struct PMXConsole
-{
+#include "../pmx.h"
+
+typedef struct PMXConsole {
     int width, height, scale, cursor_x, cursor_y;
     char* stdin;
     char* stdout;
@@ -14,7 +13,8 @@ typedef struct PMXConsole
 
 extern PMXConsole pmx_console;
 
-void 
-init_console();
+void init_console(void);
+void console_write(PMX *pmx, const char* input);
+void console_deo(PMX *pmx, int addr);  // Changed to int to match pmx.h
 
-#endif 
+#endif
