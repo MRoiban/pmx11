@@ -85,6 +85,21 @@ struct alphabet {
     .width = 130,
 };
 
+struct cursor {
+    const char *bitmap[5];
+    int height;
+    int width;
+} cursor = {.bitmap =
+                {
+                    "11110",
+                    "11000",
+                    "10100",
+                    "10010",
+                    "00001",
+                },
+            .height = 5,
+            .width = 5};
+
 #define ALPHABET_NUMBER 37
 const AlphabetMapping alphabet_map[ALPHABET_NUMBER] = {
     {0x00, " "}, {0x01, "A"}, {0x02, "B"}, {0x03, "C"}, {0x04, "D"},
@@ -113,12 +128,25 @@ static SDL_Renderer *renderer;
 static SDL_Texture *texture = NULL;
 static SDL_Surface *screenSurface = NULL;
 
+/**
+ * @brief Update the display background
+ *
+ * @param bg Background color
+ */
 void
 updateDisplayBg(Uint32 bg) {
     screenSurface = SDL_GetWindowSurface(window);
     SDL_UpdateWindowSurface(window);
 }
 
+/**
+ * @brief Draw a pixel on the display
+ *
+ * @param x The x-coordinate of the pixel
+ * @param y The y-coordinate of the pixel
+ * @param scale The scale factor of the pixel
+ * @param color The color of the pixel
+ */
 void
 drawPixel(int x, int y, int scale, Uint32 color) {
     for (int i = 1; i < scale + 1; i++) {
@@ -132,8 +160,19 @@ drawPixel(int x, int y, int scale, Uint32 color) {
             pmx_display.pixels[c1] = color;
         }
     }
+    pmx_display.bool_update = 1;
 }
 
+/**
+ * @brief Draw a rectangle on the display
+ *
+ * @param x The x-coordinate of the rectangle
+ * @param y The y-coordinate of the rectangle
+ * @param width The width of the rectangle
+ * @param height The height of the rectangle
+ * @param scale The scale factor of the rectangle
+ * @param color The color of the rectangle
+ */
 void
 drawRect(int x, int y, int width, int height, int scale, Uint32 color) {
     for (int i = 0; i < width; i++) {
@@ -143,6 +182,19 @@ drawRect(int x, int y, int width, int height, int scale, Uint32 color) {
     }
 }
 
+/**
+ * @brief Draw a bitmap on the display
+ *
+ * @param i The x-offset of the bitmap
+ * @param j The y-offset of the bitmap
+ * @param index The index of the character in the bitmap
+ * @param width The width of the bitmap
+ * @param bitmap The bitmap data
+ * @param rows The number of rows in the bitmap
+ * @param cols The number of columns in the bitmap
+ * @param scale The scale factor of the bitmap
+ * @param color The color of the bitmap
+ */
 void
 drawBitmap(int i, int j, int index, int width, const char *bitmap[], int rows,
            int cols, int scale, Uint32 color) {
@@ -160,13 +212,12 @@ drawBitmap(int i, int j, int index, int width, const char *bitmap[], int rows,
     }
 }
 
-// void
-// drawChar(int index, int x, int y, int scale, Uint32 color) {
-//     drawBitmap(x, y, index, 5, alphabet.bitmap, alphabet.height,
-//     alphabet.width,
-//                scale, color);
-// }
-
+/**
+ * @brief Get the index of a character in the alphabet
+ *
+ * @param letter The character to get the index for
+ * @return The index of the character in the alphabet
+ */
 int
 getAlphabetIndex(char letter) {
     // Calculate the index (A -> 0, B -> 1, ..., Z -> 25)
@@ -175,6 +226,12 @@ getAlphabetIndex(char letter) {
     return index;
 }
 
+/**
+ * @brief Get the index of a digit in the number bitmap
+ *
+ * @param digit The digit to get the index for
+ * @return The index of the digit in the number bitmap
+ */
 int
 getNumberIndex(char digit) {
     // Calculate the index ('1' -> 0, '2' -> 1, ..., '9' -> 8, '0' -> 9)
@@ -188,6 +245,15 @@ getNumberIndex(char digit) {
     return index;
 }
 
+/**
+ * @brief Draw a character on the display
+ *
+ * @param character The character to draw
+ * @param x The x-coordinate of the character
+ * @param y The y-coordinate of the character
+ * @param scale The scale factor of the character
+ * @param color The color of the character
+ */
 void
 drawChar(char character, int x, int y, int scale, Uint32 color) {
     if (character >= 'A' && character <= 'Z') {
@@ -206,6 +272,15 @@ drawChar(char character, int x, int y, int scale, Uint32 color) {
     }
 }
 
+/**
+ * @brief Draw a string on the display
+ *
+ * @param string The string to draw
+ * @param x The x-coordinate of the string
+ * @param y The y-coordinate of the string
+ * @param scale The scale factor of the string
+ * @param color The color of the string
+ */
 void
 drawString(char string[], int x, int y, int scale, Uint32 color) {
     int index;
@@ -213,14 +288,20 @@ drawString(char string[], int x, int y, int scale, Uint32 color) {
         if (string[i] == ' ') {
             index = 0;
         } else {
-            index = getAlphabetIndex(string[i]) +
-                    1; //+1 because i've assigned 0 to space!
+            index = getAlphabetIndex(string[i]) + 1; // +1 because I've assigned 0 to space!
         }
         drawChar(index, x, y, scale, color);
         x += 6;
     }
 }
 
+/**
+ * @brief Initialize the display
+ *
+ * @param w The width of the display
+ * @param h The height of the display
+ * @param bg The background color of the display
+ */
 void
 initDisplay(int w, int h, Uint32 bg) {
     pmx_display.width = SCREEN_WIDTH;
@@ -265,16 +346,37 @@ initDisplay(int w, int h, Uint32 bg) {
     }
 }
 
-void
-display_update() {
-    SDL_UpdateTexture(texture, NULL, pmx_display.pixels,
-                      SCREEN_WIDTH * sizeof(Uint16));
-    SDL_RenderClear(renderer);
-    // Clear the renderer, copy the texture, and present the updated frame
-    SDL_RenderCopy(renderer, texture, NULL, NULL);
-    SDL_RenderPresent(renderer);
+/**
+ * @brief Update the display
+ */
+void display_update() {
+    if (pmx_display.bool_update) {
+        // Check if an update is necessary
+        if (SDL_UpdateTexture(texture, NULL, pmx_display.pixels, SCREEN_WIDTH * sizeof(Uint16)) != 0) {
+            // Handle error
+            fprintf(stderr, "Failed to update texture: %s\n", SDL_GetError());
+            return;
+        }
+
+        // Clear the renderer, copy the texture, and present the updated frame
+        SDL_RenderClear(renderer);
+        if (SDL_RenderCopy(renderer, texture, NULL, NULL) != 0) {
+            // Handle error
+            fprintf(stderr, "Failed to copy texture to renderer: %s\n", SDL_GetError());
+            return;
+        }
+        SDL_RenderPresent(renderer);
+
+        pmx_display.bool_update = 0;  // Reset the update flag
+    }
 }
 
+/**
+ * @brief Convert a character to hexadecimal
+ *
+ * @param character The character to convert
+ * @return The hexadecimal value of the character
+ */
 int
 char_to_hex(char character) {
     int hex;
@@ -287,6 +389,11 @@ char_to_hex(char character) {
     return hex;
 }
 
+/**
+ * @brief Draw characters in memory on the display
+ *
+ * @param pmx The PMX virtual machine
+ */
 void
 drawChar_mem(PMX *pmx) {
     int addr = DISPLAY_BLOCK;
@@ -342,6 +449,12 @@ drawChar_mem(PMX *pmx) {
     }
 }
 
+/**
+ * @brief Handle display DEO instructions
+ *
+ * @param pmx The PMX virtual machine
+ * @param addr The DEO address
+ */
 void
 display_deo(PMX *pmx, Uint8 addr) {
     // printf("dev: %d\n", pmx->dev[addr]);
@@ -358,6 +471,10 @@ display_deo(PMX *pmx, Uint8 addr) {
     case 0x12:
         drawRect(0, 0, 600, 800, 1, 0x000);
         drawChar_mem(pmx);
+        break;
+    case 0x13:
+        drawBitmap(pmx->dev[0x25] / 2, pmx->dev[0x26] / 2, 0, cursor.width,
+                   cursor.bitmap, cursor.height, cursor.width, 2, 0xfff);
         break;
     default:
         break;
