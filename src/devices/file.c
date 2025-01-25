@@ -1,4 +1,26 @@
+#include <stdio.h>
+#include <dirent.h>
+#include <errno.h>
+#include <limits.h>
+#include <string.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include "file.h"
+
+typedef struct PMXFile {
+    DIR *dir;
+    FILE *f;
+    char filename[1024];
+    struct dirent *de;
+    enum state {
+        IDLE,
+        FILE_READ,
+        FILE_WRITE,
+    } state;
+    int outside_sandbox;
+} PMXFile;
 
 void
 file_reset() {}
