@@ -76,7 +76,7 @@ emu_run(PMX *pmx) {
         // printf("x: %d, y: %d, btn:%d\n",pmx->dev[0x25], pmx->dev[0x26],
         // pmx->dev[0x27]);
         for (int i = 0; i < 256; i++) {
-            if (PEEK2(pmx, i) == 1) {
+            if (PEEK2(i) == 1) {
                 emu_deo(pmx, i);
             }
         }
