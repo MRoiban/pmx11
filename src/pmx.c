@@ -38,35 +38,35 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define WST(i) pmx->wst[i]
+#define WST pmx->wst
 #define PC pmx->pc
 #define SP pmx->sp
 #define R pmx->registers
-#define increase(pmx) WST(SP)++; PC++
-#define decrease(pmx) WST(SP)--; PC++
+#define increase(pmx) WST[SP]++; PC++
+#define decrease(pmx) WST[SP]--; PC++
 #define remove_top_of_stack(pmx) SP--; PC++
-#define dev_write(pmx, addr) PEEK2(pmx, addr) = WST(SP--); PC += 2
-#define add(pmx) WST(++SP)=WST(SP--)+WST(SP--);PC++
-#define sub(pmx) WST(++SP)=WST(SP--)-WST(SP--);PC++
-#define duplicate(pmx) WST(SP++) = WST(SP);SP++; PC++
+#define dev_write(pmx, addr) PEEK2(addr) = WST[SP--]; PC += 2
+#define add(pmx) WST[++SP]=WST[SP--]+WST[SP--];PC++
+#define sub(pmx) WST[++SP]=WST[SP--]-WST[SP--];PC++
+#define duplicate(pmx) WST[SP++] = WST[SP];SP++; PC++
 #define load(pmx, reg, value) if (reg >= 1 && reg <= REGISTER_NUMBER) R[reg - 1] = value; PC += 2
-#define read_pc(pmx) WST(++SP) = PC; PC++
-#define push(pmx, reg) if (reg >= 1 && reg <= REGISTER_NUMBER) WST(++SP) = R[reg - 1]; PC += 2
-#define pop(pmx, reg) if (reg >= 1 && reg <= REGISTER_NUMBER) R[reg - 1] = WST(SP--); PC += 2
+#define read_pc(pmx) WST[++SP] = PC; PC++
+#define push(pmx, reg) if (reg >= 1 && reg <= REGISTER_NUMBER) WST[++SP] = R[reg - 1]; PC += 2
+#define pop(pmx, reg) if (reg >= 1 && reg <= REGISTER_NUMBER) R[reg - 1] = WST[SP--]; PC += 2
 #define jump(pmx, pc) PC = pc
-#define over(pmx) WST(SP++) = WST(SP--);SP += 1;PC++
-#define equal(pmx) WST(SP--);WST(++SP) = (WST(SP--) == WST(SP--)) ? 0 : 1;PC++
-#define greater_than(pmx) WST(++SP) = (WST(SP--) > WST(SP--)) ? 0 : 1;PC++
-#define lower_than(pmx) WST(++SP) = (WST(SP--) < WST(SP--)) ? 0 : 1;PC++
-#define swap(pmx) {int reg1 = WST(SP--);int reg2 = WST(SP--);int temp = R[reg1 - 1];R[reg1 - 1] = R[reg2 - 1];R[reg2 - 1] = temp;PC += 3;}
-#define put_on_top_of_stack(pmx, value) WST(++SP) = value;PC += 2
-#define goto_instruction(pmx) WST(++SP) = PC + 1;over(pmx);jump(pmx, WST(SP--))
-#define power(pmx) WST(++SP) = (int)pow(WST(SP--), WST(SP--));PC++
-#define sqrt_instruction(pmx) WST(++SP) = (int)sqrt(WST(SP--));PC++
-#define abs_instruction(pmx) WST(++SP) = abs(WST(SP--));PC++
-#define mul(pmx) WST(++SP) = WST(SP--) * WST(SP--);PC++
-#define div_pmx(pmx) WST(++SP) = WST(SP--) / WST(SP--);PC++
-#define ret(pmx) pmx->rst[++pmx->rp] = WST(SP--);PC++
+#define over(pmx) WST[SP++] = WST[SP--];SP += 1;PC++
+#define equal(pmx) WST[SP--];WST[++SP] = (WST[SP--] == WST[SP--]) ? 0 : 1;PC++
+#define greater_than(pmx) WST[++SP] = (WST[SP--] > WST[SP--]) ? 0 : 1;PC++
+#define lower_than(pmx) WST[++SP] = (WST[SP--] < WST[SP--]) ? 0 : 1;PC++
+#define swap(pmx) {int reg1 = WST[SP--];int reg2 = WST[SP--];int temp = R[reg1 - 1];R[reg1 - 1] = R[reg2 - 1];R[reg2 - 1] = temp;PC += 3;}
+#define put_on_top_of_stack(pmx, value) WST[++SP] = value;PC += 2
+#define goto_instruction(pmx) WST[++SP] = PC + 1;over(pmx);jump(pmx, WST[SP--])
+#define power(pmx) WST[++SP] = (int)pow(WST[SP--], WST[SP--]);PC++
+#define sqrt_instruction(pmx) WST[++SP] = (int)sqrt(WST[SP--]);PC++
+#define abs_instruction(pmx) WST[++SP] = abs(WST[SP--]);PC++
+#define mul(pmx) WST[++SP] = WST[SP--] * WST[SP--];PC++
+#define div_pmx(pmx) WST[++SP] = WST[SP--] / WST[SP--];PC++
+#define ret(pmx) pmx->rst[++pmx->rp] = WST[SP--];PC++
 
 void
 init_pmx(PMX *pmx, VariableTable *table) {
@@ -75,19 +75,19 @@ init_pmx(PMX *pmx, VariableTable *table) {
         return;
     }
     pmx->memory = malloc(MEMORY_SIZE * sizeof(unsigned int));
-    pmx->wst = malloc(MEMORY_SIZE * sizeof(unsigned int));
+    WST = malloc(MEMORY_SIZE * sizeof(unsigned int));
     pmx->rst = malloc(MEMORY_SIZE * sizeof(unsigned int));
     pmx->table = table;
 
-    if (!pmx->memory || !pmx->wst || !pmx->rst) {
+    if (!pmx->memory || !WST || !pmx->rst) {
         free(pmx->memory);
-        free(pmx->wst);
+        free(WST);
         free(pmx->rst);
         return;
     }
 
     memset(pmx->memory, 0, MEMORY_SIZE * sizeof(unsigned int));
-    memset(pmx->wst, 0, MEMORY_SIZE * sizeof(unsigned int));
+    memset(WST, 0, MEMORY_SIZE * sizeof(unsigned int));
     memset(pmx->rst, 0, MEMORY_SIZE * sizeof(unsigned int));
     memset(R, 0, REGISTER_NUMBER * sizeof(int));
 
@@ -137,7 +137,7 @@ resolve_variable(PMX *pmx, Variable *var) {
     case MEMORY:
         return pmx->memory[var->location];
     case DEV:
-        return pmx->dev[var->location];
+        return PEEK2(var->location);
     default:
         fprintf(stderr, "Error: Unknown variable type\n");
         return 0;
@@ -166,7 +166,7 @@ void
 load_program(PMX *pmx, int *program, int length) {
     pmx->steps = length;
     for (int i = 0; i < length; i++) {
-        PEEK(pmx, i) = program[i];
+        PEEK(i) = program[i];
     }
 }
 
@@ -178,7 +178,7 @@ unload_program(PMX *pmx) {
 
     // Clear the program memory
     for (int i = 0; i < R[7]; i++) {
-        PEEK(pmx, i) = 0;
+        PEEK(i) = 0;
     }
 
     R[7] = 0;
@@ -198,9 +198,9 @@ halt(PMX *pmx, int running) {
 
 void
 jump_if_not_zero(PMX *pmx) {
-    int condition = WST(SP--);
+    int condition = WST[SP--];
     if (condition != 0) {
-        jump(pmx,WST(SP--));
+        jump(pmx,WST[SP--]);
     } else {
         PC++;
     }
@@ -212,8 +212,8 @@ jump_if_not_zero(PMX *pmx) {
 
 void
 store(PMX *pmx) {
-    unsigned int addr = WST(SP--);
-    int value = WST(SP--);
+    unsigned int addr = WST[SP--];
+    int value = WST[SP--];
     pmx->memory[addr] = value;
     PC++;
 }
