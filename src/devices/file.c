@@ -88,26 +88,26 @@ void
 file_deo(PMX *pmx, Uint8 addr) {
     switch (addr) {
     case 0x30: {
-        int addr = PEEK2(pmx, 0x36);
-        int len = PEEK2(pmx, 0x37);
+        int addr = PEEK2(0x36);
+        int len = PEEK2(0x37);
         char filename[len];
         for (int i = 0; i < len; i++) {
-            filename[i] = PEEK(pmx, addr + i);
+            filename[i] = PEEK(addr + i);
         }
         file_init(&pmxfile[0], filename, len);
         printf("filename: %s\n", pmxfile[0].filename);
-        POKE2(pmx, 0x30, 0);
+        POKE2(0x30, 0);
         break;
     }
     case 0x31:
         file_reset(&pmxfile[0]);
         break;
     case 0x32:
-        file_read(&pmxfile[0], &pmx->memory[0x100], PEEK2(pmx, 0x37));
+        file_read(&pmxfile[0], &pmx->memory[0x100], PEEK2(0x37));
         break;
     case 0x33:
-        file_write(&pmxfile[0], &pmx->memory[0x100], PEEK2(pmx, 0x37),
-                   PEEK2(pmx, 0x38));
+        file_write(&pmxfile[0], &pmx->memory[0x100], PEEK2(0x37),
+                   PEEK2(0x38));
         break;
     case 0x34:
         file_delete(&pmxfile[0]);
