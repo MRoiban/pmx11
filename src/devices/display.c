@@ -405,46 +405,46 @@ drawChar_mem(PMX *pmx) {
     int y;
     int scale;
     Uint32 color;
-    while (addr < DISPLAY_SIZE && PEEK(pmx, addr) != 0) {
+    while (addr < DISPLAY_SIZE && PEEK(addr) != 0) {
         char *c = NULL;
         for (int i = 0; i < ALPHABET_NUMBER; i++) {
-            if (alphabet_map[i].hex == PEEK(pmx, addr)) {
+            if (alphabet_map[i].hex == PEEK(addr)) {
                 c = alphabet_map[i].UpLetter;
                 break;
             }
         }
 
-        if (PEEK(pmx, addr+9) != 1)
+        if (PEEK(addr+9) != 1)
             break;
 
         if (c == NULL)
             break;
 
-        int flagx = PEEK(pmx, addr + 5);
-        int flagy = PEEK(pmx, addr + 6);
-        int flags = PEEK(pmx, addr + 7);
-        int flagc = PEEK(pmx, addr + 8);
-        int done = PEEK(pmx, addr + 9);
+        int flagx = PEEK(addr + 5);
+        int flagy = PEEK(addr + 6);
+        int flags = PEEK(addr + 7);
+        int flagc = PEEK(addr + 8);
+        int done = PEEK(addr + 9);
 
         if (flagx != 0) {
-            x = pmx->registers[PEEK(pmx, addr + 1) - 1];
+            x = pmx->registers[PEEK(addr + 1) - 1];
         } else {
-            x = PEEK(pmx, addr + 1);
+            x = PEEK(addr + 1);
         }
         if (flagy != 0) {
-            y = pmx->registers[PEEK(pmx, addr + 2) - 1];
+            y = pmx->registers[PEEK(addr + 2) - 1];
         } else {
-            y = PEEK(pmx, addr + 2);
+            y = PEEK(addr + 2);
         }
         if (flags != 0) {
-            scale = pmx->registers[PEEK(pmx, addr + 3) - 1];
+            scale = pmx->registers[PEEK(addr + 3) - 1];
         } else {
-            scale = PEEK(pmx, addr + 3);
+            scale = PEEK(addr + 3);
         }
         if (flagc != 0) {
-            color = pmx->registers[PEEK(pmx, addr + 4) - 1];
+            color = pmx->registers[PEEK(addr + 4) - 1];
         } else {
-            color = PEEK(pmx, addr + 4);
+            color = PEEK(addr + 4);
         }
 
         drawChar(*c, x, y, scale, color);
@@ -477,8 +477,8 @@ display_deo(PMX *pmx, Uint8 addr) {
         drawChar_mem(pmx);
         break;
     case 0x13: {
-        int x = PEEK2(pmx, 0x25);
-        int y = PEEK2(pmx, 0x26);
+        int x = PEEK2(0x25);
+        int y = PEEK2(0x26);
         drawBitmap(x / 2, y / 2, 0, cursor.width, cursor.bitmap, cursor.height,
                    cursor.width, 2, 0xfff);
         break;
