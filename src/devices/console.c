@@ -49,12 +49,12 @@ console_write(PMX *pmx, const char *input) {
 
     size_t len = strlen(input);
     for (size_t i = 0; i < len; i++) {
-        POKE2(pmx, 0x06, input[i]);
+        POKE2(0x06, input[i]);
         console_deo(pmx, 0x01);
     }
 
     // Add newline at the end
-    POKE2(pmx, 0x06, '\n');
+    POKE2(0x06, '\n');
     console_deo(pmx, 0x01);
 }
 
@@ -62,17 +62,17 @@ void
 console_deo(PMX *pmx, int addr) { // Changed Uint8 to int to match pmx.h
     switch (addr) {
     case 0x00: {
-        char c = PEEK2(pmx, 0x05);
+        char c = PEEK2(0x05);
         fprintf(stderr, "%c", c);
         break;
     }
     case 0x01: {
-        char c = PEEK2(pmx, 0x06);
+        char c = PEEK2(0x06);
         printf("%c", c);
         break;
     }
     case 0x02: {
-        int d = PEEK2(pmx, 0x06);
+        int d = PEEK2(0x06);
         printf("%d", d);
         break;
     }
