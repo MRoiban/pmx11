@@ -62,7 +62,7 @@ file_write(PMXFile *file, void *src, int len, Uint8 flags) {
     }
     if (file->state == FILE_WRITE)
         fwrite(src, 1, len, file->f);
-        
+    fflush(file->f);
 
     return 0;
 }
@@ -103,12 +103,17 @@ file_deo(PMX *pmx, Uint8 addr) {
     case 0x31:
         file_reset(&pmxfile[0]);
         break;
-    case 0x32:
-        file_read(&pmxfile[0], &pmx->memory[0x100], PEEK2(0x37));
+    case 0x32:{
+        int len = PEEK(0x100)+1;
+        for (int i = 1; i < len; i++) {
+            file_read(&pmxfile[0], &pmx->memory[0x100 + i], PEEK2(0x37));
+            printf("PEEKing: %c\n", PEEK(0x100 + i));
+        }
+        POKE2(0x32, 0);
         break;
+    }
     case 0x33:
-        file_write(&pmxfile[0], &pmx->memory[0x100], PEEK2(0x37),
-                   PEEK2(0x38));
+        file_write(&pmxfile[0], &pmx->memory[0x100], PEEK2(0x37), PEEK2(0x38));
         printf("PEEKing: %c\n", PEEK(0x100));
         POKE2(0x33, 0);
         break;
