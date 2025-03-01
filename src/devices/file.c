@@ -70,7 +70,7 @@ file_write(PMXFile *file, void *src, int len, Uint8 flags) {
 static Uint16
 file_read(PMXFile *file, void *dest, int len) {
     if (file->state != FILE_READ) {
-        if ((file->f = fopen(file->filename, "rb")) != NULL) {
+        if ((file->f = fopen("./build/z/"+(char)file->filename, "rb")) != NULL) {
             file->state = FILE_READ;
         }
     }
@@ -103,8 +103,8 @@ file_deo(PMX *pmx, Uint8 addr) {
     case 0x31:
         file_reset(&pmxfile[0]);
         break;
-    case 0x32:{
-        int len = PEEK(0x100)+1;
+    case 0x32: {
+        int len = PEEK(0x100) + 1;
         for (int i = 1; i < len; i++) {
             file_read(&pmxfile[0], &pmx->memory[0x100 + i], PEEK2(0x37));
             printf("PEEKing: %c\n", PEEK(0x100 + i));
@@ -112,11 +112,15 @@ file_deo(PMX *pmx, Uint8 addr) {
         POKE2(0x32, 0);
         break;
     }
-    case 0x33:
-        file_write(&pmxfile[0], &pmx->memory[0x100], PEEK2(0x37), PEEK2(0x38));
-        printf("PEEKing: %c\n", PEEK(0x100));
+    case 0x33: {
+        int len = PEEK(0x100)+1;
+        for (int i = 1; i < len; i++) {
+            file_write(&pmxfile[0], &pmx->memory[0x100+i], PEEK2(0x37),
+                       PEEK2(0x38));
+        }
         POKE2(0x33, 0);
         break;
+    }
     case 0x34:
         file_delete(&pmxfile[0]);
         break;
