@@ -45,7 +45,7 @@
 #define increase(pmx) WST[SP]++; PC++
 #define decrease(pmx) WST[SP]--; PC++
 #define remove_top_of_stack(pmx) SP--; PC++
-#define dev_write(pmx, addr) PEEK2(addr) = WST[SP--]; PC += 2
+#define dev_write(pmx, addr) POKE2(addr, WST[SP--]); PC += 2
 #define add(pmx) WST[++SP]=WST[SP--]+WST[SP--];PC++
 #define sub(pmx) WST[++SP]=WST[SP--]-WST[SP--];PC++
 #define duplicate(pmx) WST[SP++] = WST[SP];SP++; PC++

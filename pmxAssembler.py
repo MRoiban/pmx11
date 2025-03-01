@@ -29,8 +29,8 @@ assembly_to_opcode = {
     "ABS": "0x19",
     "MOV": "0x20",
     "STR": "0xAA",
-    "DVO": "0xAF",
-    "DVW": "0xBF",
+    "PEEK2": "0xAF",
+    "POKE2": "0xBF",
     "SWAP": "0xCF",
     "GOTO": "0xDE",
     "JMP": "0xDF",
@@ -214,9 +214,9 @@ def parse_instructions(display_addr, program, variables, parts, instruction, pc=
         "PUSH",
         "POP",
         "SWAP",
-        "DVW",
+        "POKE2",
         "POT",
-        "DVO",
+        "PEEK2",
         "VAR",
         "LABEL",
         "CALL",
@@ -239,7 +239,7 @@ def parse_instructions(display_addr, program, variables, parts, instruction, pc=
             display_addr = wchr_instruction(display_addr, program, parts)
         elif instruction == "WSTR":
             display_addr = wstr_instruction(display_addr, program, parts)
-        elif instruction in ["PUSH", "POP", "DVW", "POT", "DVO", "JMP"]:
+        elif instruction in ["PUSH", "POP", "POKE2", "POT", "PEEK2", "JMP"]:
             unary_instruction(program, variables, parts, instruction)
         elif instruction in ["SWAP"]:
             swap_instruction(program, parts, instruction)
