@@ -473,16 +473,27 @@ display_deo(PMX *pmx, Uint8 addr) {
     case 0x11:
         break;
     case 0x12:
+        // RESET display
         drawRect(0, 0, 600, 800, 1, 0x000);
         drawChar_mem(pmx);
         break;
     case 0x13: {
+        // Draw Mouse
         int x = PEEK2(0x25);
         int y = PEEK2(0x26);
         drawBitmap(x / 2, y / 2, 0, cursor.width, cursor.bitmap, cursor.height,
                    cursor.width, 2, 0xfff);
         break;
     }
+    case 0x14:
+        // pixel: x,y,s,c 
+        break;
+    case 0x15:
+        // line: x1,y1,x2,y2,s,c
+        break;
+    case 0x16:
+        // rectangle: x1,y1,x2,y2,w,h,s,c
+        break;
     default:
         break;
     }
