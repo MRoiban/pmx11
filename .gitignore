@@ -14,3 +14,7 @@ codebase.txt
 *.asm
 codebase.md
 AC
+.cursor
+pmx-asm
+pmx-lang-syntax-highlight
+

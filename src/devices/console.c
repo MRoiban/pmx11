@@ -73,7 +73,7 @@ console_deo(PMX *pmx, int addr) { // Changed Uint8 to int to match pmx.h
     }
     case 0x02: {
         int d = PEEK2(0x06);
-        printf("%d", d);
+        printf("%d\n", d);
         break;
     }
     default:

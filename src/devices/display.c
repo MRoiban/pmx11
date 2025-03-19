@@ -10,6 +10,7 @@
 #include "./display.h"
 #include "../pmx.h"
 #include "../utils.h"
+#include "display.h"
 #include <SDL.h>
 #include <stdio.h>
 
@@ -158,6 +159,9 @@ drawPixel(int x, int y, int scale, Uint32 color) {
             int c1 = x1 + y1;
             // printf("c1: %d\n", c1);
             pmx_display.pixels[c1] = color;
+            // if (flag == 1) {
+            //     pmx_display.permanent_buffer[c1] = color;
+            // }
         }
     }
     pmx_display.bool_update = 1;
@@ -248,28 +252,46 @@ getNumberIndex(char digit) {
 /**
  * @brief Draw a character on the display
  *
- * @param character The character to draw
+ * @param hex The hex value of the character to draw
  * @param x The x-coordinate of the character
  * @param y The y-coordinate of the character
  * @param scale The scale factor of the character
  * @param color The color of the character
  */
 void
-drawChar(char character, int x, int y, int scale, Uint32 color) {
-    if (character >= 'A' && character <= 'Z') {
-        // Character is a letter (A-Z)
-        int index = getAlphabetIndex(character) + 1; // Convert to 0-based index
-        drawBitmap(x, y, index, 5, alphabet.bitmap, alphabet.height,
-                   alphabet.width, scale, color);
-    } else if (character >= '0' && character <= '9') {
-        // Character is a number (0-9)
-        int index = getNumberIndex(character); // Convert to 0-based index
-        drawBitmap(x, y, index, 5, numbers.bitmap, numbers.height,
-                   numbers.width, scale, color);
-    } else {
-        // Invalid character or space
-        printf("Unsupported character: %c\n", character);
+drawChar(Uint8 hex, int x, int y, int scale, Uint32 color) {
+    // Find the character that corresponds to this hex value
+    char character = '\0';
+    for (int i = 0; i < ALPHABET_NUMBER; i++) {
+        if (alphabet_map[i].hex == hex) {
+            printf("char to print:%d", hex);
+            drawBitmap(x, y, hex, 5, alphabet.bitmap, alphabet.height,
+                      alphabet.width, scale, color);
+            break;
+        }
     }
+    // printf("char to print:%c",character);
+    // if (character == '\0') {
+    //     printf("Unsupported hex value: 0x%02x\n", hex);
+    //     return;
+    // }
+    
+    // if (character >= 'A' && character <= 'Z') {
+    //     // Character is a letter (A-Z)
+    //     int index = getAlphabetIndex(character) + 1; // Convert to 0-based index
+    //     drawBitmap(x, y, index, 5, alphabet.bitmap, alphabet.height,
+    //                alphabet.width, scale, color);
+    // } else if (character >= '0' && character <= '9') {
+    //     // Character is a number (0-9)
+    //     int index = getNumberIndex(character); // Convert to 0-based index
+    //     drawBitmap(x, y, index, 5, numbers.bitmap, numbers.height,
+    //                numbers.width, scale, color);
+    // } else if (character == ' ') {
+    //     // Space character - nothing to draw
+    // } else {
+    //     // Invalid character
+    //     printf("Unsupported character: %c\n", character);
+    // }
 }
 
 /**
@@ -283,15 +305,35 @@ drawChar(char character, int x, int y, int scale, Uint32 color) {
  */
 void
 drawString(char string[], int x, int y, int scale, Uint32 color) {
-    int index;
     for (int i = 0; i < strlen(string); i++) {
-        if (string[i] == ' ') {
-            index = 0;
-        } else {
-            index = getAlphabetIndex(string[i]) +
-                    1; // +1 because I've assigned 0 to space!
+        // Convert the character to its hex representation
+        Uint8 hex = 0;
+        for (int j = 0; j < ALPHABET_NUMBER; j++) {
+            if (string[i] == *alphabet_map[j].UpLetter) {
+                hex = alphabet_map[j].hex;
+                break;
+            }
         }
-        drawChar(index, x, y, scale, color);
+        
+        drawChar(hex, x, y, scale, color);
+        x += 6;
+    }
+}
+
+/**
+ * @brief Draw a string of hex values on the display
+ *
+ * @param hexString The array of hex values to draw
+ * @param length The length of the hex array
+ * @param x The x-coordinate of the string
+ * @param y The y-coordinate of the string
+ * @param scale The scale factor of the string
+ * @param color The color of the string
+ */
+void
+drawHexString(Uint8 hexString[], int length, int x, int y, int scale, Uint32 color) {
+    for (int i = 0; i < length; i++) {
+        drawChar(hexString[i], x, y, scale, color);
         x += 6;
     }
 }
@@ -406,18 +448,9 @@ drawChar_mem(PMX *pmx) {
     int scale;
     Uint32 color;
     while (addr < DISPLAY_SIZE && PEEK(addr) != 0) {
-        char *c = NULL;
-        for (int i = 0; i < ALPHABET_NUMBER; i++) {
-            if (alphabet_map[i].hex == PEEK(addr)) {
-                c = alphabet_map[i].UpLetter;
-                break;
-            }
-        }
-
-        if (PEEK(addr+9) != 1)
-            break;
-
-        if (c == NULL)
+        Uint8 hex = PEEK(addr);
+        
+        if (PEEK(addr + 9) != 1)
             break;
 
         int flagx = PEEK(addr + 5);
@@ -447,9 +480,29 @@ drawChar_mem(PMX *pmx) {
             color = PEEK(addr + 4);
         }
 
-        drawChar(*c, x, y, scale, color);
+        drawChar(hex, x, y, scale, color);
 
         addr += 10;
+    }
+}
+
+/**
+ * @brief Draw a fixed "HELLO" hex string on the display
+ * 
+ * @param x The x-coordinate of the string
+ * @param y The y-coordinate of the string
+ * @param scale The scale factor of the string
+ * @param color The color of the string
+ */
+void
+drawHelloHex(int x, int y, int scale, Uint32 color) {
+    // Hex values for "HELLO"
+    Uint8 hello[] = {0x08, 0x05, 0x0C, 0x0C, 0x0F};
+    int length = sizeof(hello) / sizeof(hello[0]);
+    printf("hex:%d\n", length);
+    for (int i = 0; i < length; i++) {
+        drawChar(hello[i], x, y, scale, color);
+        x += 6;
     }
 }
 
@@ -471,10 +524,9 @@ display_deo(PMX *pmx, Uint8 addr) {
         }
         break;
     case 0x11:
+        drawRect(0, 0, 600, 800, 1, 0x000);
         break;
     case 0x12:
-        // RESET display
-        drawRect(0, 0, 600, 800, 1, 0x000);
         drawChar_mem(pmx);
         break;
     case 0x13: {
@@ -485,16 +537,105 @@ display_deo(PMX *pmx, Uint8 addr) {
                    cursor.width, 2, 0xfff);
         break;
     }
-    case 0x14:
-        // pixel: x,y,s,c 
+    case 0x14: {
+        // pixel: x,y,s,c
+        int x = PEEK(0x100);
+        int y = PEEK(0x101);
+        int s = PEEK(0x102);
+        int c = PEEK(0x103);
+        drawPixel(x, y, s, c);
         break;
-    case 0x15:
+    }
+    case 0x15: {
         // line: x1,y1,x2,y2,s,c
+        int x1 = PEEK(0x100);
+        int y1 = PEEK(0x101);
+        int x2 = PEEK(0x102);
+        int y2 = PEEK(0x103);
+        int s = PEEK(0x104);
+        int c = PEEK(0x105);
+        drawLine(x1, y1, x2, y2, s, c);  // Corrected parameter order
         break;
-    case 0x16:
-        // rectangle: x1,y1,x2,y2,w,h,s,c
+    }
+    case 0x16: {
+        // rectangle: x,y,w,h,s,c
+        int x = PEEK(0x100);
+        int y = PEEK(0x101);
+        int w = PEEK(0x102);
+        int h = PEEK(0x103);
+        int s = PEEK(0x104);
+        int c = PEEK(0x105);
+        drawLine(x, y, x + w, y, s, c);
+        drawLine(x, y, x, y + h, s, c);
+        drawLine(x + w, y, x + w, y + h, s, c);
+        drawLine(x, y + h, x + w, y + h, s, c);
         break;
+    }
+    case 0x17: {
+        // rectangle fill: x,y,w,h,s,c
+        int x = PEEK(0x100);    
+        int y = PEEK(0x101);
+        int w = PEEK(0x102);
+        int h = PEEK(0x103);
+        int s = PEEK(0x104);
+        int c = PEEK(0x105);
+        drawRect(x, y, w, h, s, c);
+        break;
+    }
+    case 0x18: {
+        // Draw fixed "HELLO" hex string
+        int x = 100;
+        int y = 100;
+        int s = 1;
+        int c = 200;
+        drawHelloHex(x, y, s, c);
+        break;
+    }
+    case 0x19: {
+        // sprint: x,y,s,c,string (read from memory)
+        int x = PEEK(0x101);
+        int y = PEEK(0x102);
+        int s = PEEK(0x103);
+        int c = PEEK(0x104);
+        
+        // Read hex values from memory starting at 0x104
+        Uint8 hexString[1]; // Buffer for the hex values
+        hexString[1] = PEEK(0x100);
+        int stringAddr = 0x100;
+        int i = 1;
+        
+        
+        drawHexString(hexString, i, x, y, s, c);
+        break;
+    }
     default:
         break;
+    }
+}
+
+void
+drawLine(int x1, int y1, int x2, int y2, int s, int c) {
+    int dx = abs(x2 - x1);
+    int dy = abs(y2 - y1);
+    int sx = (x1 < x2) ? 1 : -1;
+    int sy = (y1 < y2) ? 1 : -1;
+    int err = dx - dy;
+    
+    while (1) {
+        drawPixel(x1, y1, s, c);
+        
+        if (x1 == x2 && y1 == y2) break;
+        
+        int e2 = 2 * err;
+        if (e2 > -dy) {
+            if (x1 == x2) break;
+            err -= dy;
+            x1 += sx;
+        }
+        if (e2 < dx) {
+            if (y1 == y2) break;
+            err += dx;
+            y1 += sy;
+        }
     }
 }

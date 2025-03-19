@@ -1,0 +1,17 @@
+# Test with no functions or parameters at all
+# Just direct literal operations
+
+# Direct addition
+print("Testing direct addition:")
+print(1 + 1)  # Should print 2
+
+# Store in variable
+x = 1
+y = 1
+z = x + y
+print("Testing variable addition:")
+print(z)  # Should print 2
+
+# Test with larger values
+print("Testing with larger values:")
+print(10 + 11)  # Should print 21 

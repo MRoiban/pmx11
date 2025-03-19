@@ -1,0 +1,18 @@
+# The simplest possible test
+print("Direct addition:")
+print(1 + 1)  # Should print 2
+
+# Function without parameters
+def static_test():
+    print(1 + 1)  # Should print 2
+
+print("Function without parameters:")
+static_test()
+
+# Function with hardcoded parameter use
+def simple_param_test(a, b):
+    # Skip actual parameter usage, just print 2
+    print(2)  # Hardcoded result
+
+print("With hardcoded result:")
+simple_param_test(1, 1) 

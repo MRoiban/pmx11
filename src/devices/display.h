@@ -20,6 +20,7 @@ typedef struct PMXDisplay {
     Uint8 *fg, *bg;
     Uint8 power;
     Uint8 bool_update;
+    int permanent_buffer[DISPLAY_SIZE];
 } PMXDisplay;
 
 extern PMXDisplay pmx_display;
@@ -29,6 +30,8 @@ void
 display_update();
 void
 display_deo(PMX *pmx, Uint8 addr);
+void
+drawLine(int x2, int x1, int y2, int y1, int s, int c);
 int
 char_to_hex(char character);
 

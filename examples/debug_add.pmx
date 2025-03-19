@@ -1,0 +1,16 @@
+# Minimalist test to debug basic addition
+# Test just individual operations
+
+# Print literals individually 
+print("First operand:")
+print(1)
+
+print("Second operand:")
+print(1)
+
+# Test addition operator directly
+print("Now attempting addition:")
+print(1 + 1)
+
+# End program
+print("End of test") 

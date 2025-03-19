@@ -42,11 +42,15 @@
 #define PC pmx->pc
 #define SP pmx->sp
 #define R pmx->registers
+#define and(pmx) WST[++SP]=WST[SP--] & WST[SP--];PC++
+#define or(pmx) WST[++SP]=WST[SP--] | WST[SP--];PC++
+#define not(pmx) WST[++SP] = (WST[SP--] ? 0 : 1); PC++
 #define increase(pmx) WST[SP]++; PC++
 #define decrease(pmx) WST[SP]--; PC++
 #define remove_top_of_stack(pmx) SP--; PC++
 #define dev_write(pmx, addr) POKE2(addr, WST[SP--]); PC += 2
-#define add(pmx) WST[++SP]=WST[SP--]+WST[SP--];PC++
+#define mem_write(pmx, addr) POKE(addr, WST[SP--]); PC += 2
+#define add(pmx) { int a = WST[SP--]; int b = WST[SP--]; WST[++SP] = b + a; PC++; }
 #define sub(pmx) WST[++SP]=WST[SP--]-WST[SP--];PC++
 #define duplicate(pmx) WST[SP++] = WST[SP];SP++; PC++
 #define load(pmx, reg, value) if (reg >= 1 && reg <= REGISTER_NUMBER) R[reg - 1] = value; PC += 2
@@ -55,18 +59,21 @@
 #define pop(pmx, reg) if (reg >= 1 && reg <= REGISTER_NUMBER) R[reg - 1] = WST[SP--]; PC += 2
 #define jump(pmx, pc) PC = pc
 #define over(pmx) WST[SP++] = WST[SP--];SP += 1;PC++
-#define equal(pmx) WST[SP--];WST[++SP] = (WST[SP--] == WST[SP--]) ? 0 : 1;PC++
+#define equal(pmx) WST[++SP] = (WST[SP--] == WST[SP--]) ? 0 : 1;PC++
 #define greater_than(pmx) WST[++SP] = (WST[SP--] > WST[SP--]) ? 0 : 1;PC++
 #define lower_than(pmx) WST[++SP] = (WST[SP--] < WST[SP--]) ? 0 : 1;PC++
-#define swap(pmx) {int reg1 = WST[SP--];int reg2 = WST[SP--];int temp = R[reg1 - 1];R[reg1 - 1] = R[reg2 - 1];R[reg2 - 1] = temp;PC += 3;}
+// #define swap(pmx) {int reg1 = WST[SP--];int reg2 = WST[SP--];int temp = R[reg1 - 1];R[reg1 - 1] = R[reg2 - 1];R[reg2 - 1] = temp;PC += 3;}
+#define swap(pmx) {int a = WST[SP--]; int b = WST[SP--];WST[++SP]=a;WST[++SP]=b;PC++;}
 #define put_on_top_of_stack(pmx, value) WST[++SP] = value;PC += 2
-#define goto_instruction(pmx) WST[++SP] = PC + 1;over(pmx);jump(pmx, WST[SP--])
+#define goto_instruction(pmx) WST[++SP] = PC + 1;swap(pmx);jump(pmx, WST[SP--])
 #define power(pmx) WST[++SP] = (int)pow(WST[SP--], WST[SP--]);PC++
 #define sqrt_instruction(pmx) WST[++SP] = (int)sqrt(WST[SP--]);PC++
 #define abs_instruction(pmx) WST[++SP] = abs(WST[SP--]);PC++
 #define mul(pmx) WST[++SP] = WST[SP--] * WST[SP--];PC++
 #define div_pmx(pmx) WST[++SP] = WST[SP--] / WST[SP--];PC++
 #define ret(pmx) pmx->rst[++pmx->rp] = WST[SP--];PC++
+#define peek_stack(pmx, addr) WST[++SP]=PEEK(addr);PC++;PC++
+#define peek2_stack(pmx, addr) WST[++SP]=PEEK2(addr);PC++;PC++
 
 void
 init_pmx(PMX *pmx, VariableTable *table) {
@@ -185,10 +192,6 @@ unload_program(PMX *pmx) {
 }
 
 
-
-
-
-
 int
 halt(PMX *pmx, int running) {
     unload_program(pmx);
@@ -198,9 +201,10 @@ halt(PMX *pmx, int running) {
 
 void
 jump_if_not_zero(PMX *pmx) {
+    int label = WST[SP--];
     int condition = WST[SP--];
     if (condition != 0) {
-        jump(pmx,WST[SP--]);
+        jump(pmx,label);
     } else {
         PC++;
     }
@@ -269,9 +273,9 @@ typedef struct {
     const char *assembly;
 } OpcodeMapping;
 
-#define OPCODE_COUNT 32 // Number of opcodes
 
-// Array of opcode mappings
+//todo: add 0xae and 0xaf, up the opcode count and add it to the opcode_map  
+#define OPCODE_COUNT 32
 const OpcodeMapping opcode_map[OPCODE_COUNT] = {
     {0x00, "RET"},     {0x01, "LOAD R1"}, {0x02, "LOAD R2"}, {0x03, "LOAD R3"},
     {0x04, "LOAD R4"}, {0x05, "LOAD R5"}, {0x06, "LOAD R6"}, {0x07, "LOAD R7"},
@@ -298,7 +302,7 @@ get_assembly_instruction(unsigned char opcode) {
 void
 dump(PMX *pmx, int opcode) {
     // Open the file in write mode
-    FILE *file = fopen("./log.txt", "a");
+    FILE *file = fopen("build/log.txt", "a");
     if (file == NULL) {
         // Handle file open error
         perror("Error opening file");
@@ -342,7 +346,7 @@ dump(PMX *pmx, int opcode) {
 void
 run(PMX *pmx) {
     int running = 1;
-    FILE *file = fopen("./log.txt", "a");
+    FILE *file = fopen("build/log.txt", "a");
     if (file == NULL) {
         // Handle file open error
         perror("Error opening file");
@@ -429,8 +433,15 @@ run(PMX *pmx) {
         case 0xAA:
             store(pmx);
             break;
+        case 0xAE:
+            peek_stack(pmx, pmx->memory[PC + 1]);
+            break;
         case 0xAF:
-            console_deo(pmx, pmx->memory[PC + 1]);
+            // console_deo(pmx, pmx->memory[PC + 1]);
+            peek2_stack(pmx, pmx->memory[PC + 1]);
+            break;
+        case 0xBE:
+            mem_write(pmx, pmx->memory[PC + 1]);
             break;
         case 0xBF:
             dev_write(pmx, pmx->memory[PC + 1]);
@@ -474,7 +485,7 @@ void
 step(PMX *pmx) {
     int running = 1;
     int instruction;
-    FILE *file = fopen("./log.txt", "a");
+    FILE *file = fopen("build/log.txt", "a");
     if (file == NULL) {
         // Handle file open error
         perror("Error opening file");
@@ -482,12 +493,12 @@ step(PMX *pmx) {
     }
 
     fclose(file);
-    if (pmx->step < pmx->steps) {
+    // if (pmx->step < pmx->steps) {
         instruction = pmx->memory[PC];
-        pmx->step++;
-    } else {
-        instruction = 0x00;
-    }
+    //     pmx->step++;
+    // } else {
+    //     instruction = 0x00;
+    // }
     switch (instruction) {
     case 0x00:
         running = halt(pmx, running);
@@ -576,11 +587,26 @@ step(PMX *pmx) {
     case 0x23:
         power(pmx);
         break;
+    case 0x30:
+        and(pmx);
+        break;
+    case 0x31:
+        or(pmx);
+        break;
+    case 0x34:
+        not(pmx);
+        break;
     case 0xAA:
         store(pmx);
         break;
+    case 0xAE:
+        peek_stack(pmx, pmx->memory[PC + 1]);
+        break;
     case 0xAF:
-        console_deo(pmx, pmx->memory[PC + 1]);
+        peek2_stack(pmx, pmx->memory[PC + 1]);
+        break;
+    case 0xBE:
+        mem_write(pmx, pmx->memory[PC + 1]);
         break;
     case 0xBF:
         dev_write(pmx, pmx->memory[PC + 1]);
@@ -603,7 +629,7 @@ step(PMX *pmx) {
     case 0xFF:
         ret(pmx);
         break;
-    case 0x1CF:
+    case 0xCF:
         swap(pmx);
         break;
     case 0x2CF:

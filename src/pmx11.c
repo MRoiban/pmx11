@@ -87,7 +87,7 @@ emu_run(PMX *pmx) {
 int
 main(int argc, char *args[]) {
     printf("init\n");
-    FILE *file = fopen("./log.txt", "w");
+    FILE *file = fopen("build/log.txt", "w");
     if (file == NULL) {
         perror("Error opening file");
         return 0;

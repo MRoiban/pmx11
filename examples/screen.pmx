@@ -1,0 +1,14 @@
+screen(1)
+x1 = 0
+y1 = 0
+w = 60
+h = 800
+scale = 1
+color = 200
+border_color = 170
+
+rectfill(x1,y1,w,h,scale,color)
+rect(x1,y1,w,h,scale,border_color)
+
+
+#sprint(0x08,x,y,scale,color)
