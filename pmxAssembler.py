@@ -28,8 +28,13 @@ assembly_to_opcode = {
     "POW": "0x18",
     "ABS": "0x19",
     "MOV": "0x20",
+    "AND": "0x30",
+    "OR": "0x31",
+    "NOT": "0x34",
     "STR": "0xAA",
+    "PEEK": "0xAE",
     "PEEK2": "0xAF",
+    "POKE": "0xBE",
     "POKE2": "0xBF",
     "SWAP": "0xCF",
     "GOTO": "0xDE",
@@ -213,17 +218,20 @@ def parse_instructions(display_addr, program, variables, parts, instruction, pc=
         "MOV",
         "PUSH",
         "POP",
-        "SWAP",
+        # "SWAP",
+        "POKE",
         "POKE2",
         "POT",
+        "PEEK",
         "PEEK2",
         "VAR",
         "LABEL",
         "CALL",
+        "JMP",
+        "JNZ",
         "WCHR",
         "WSTR",
         "IMPORT",
-        "JMP",
     ]:
         if instruction == "LOAD":
             load_instruction(program, variables, parts, instruction)
@@ -231,6 +239,8 @@ def parse_instructions(display_addr, program, variables, parts, instruction, pc=
             var_instruction(variables, parts)
         elif instruction == "CALL":
             call_instruction(program, parts)
+        elif instruction == "JNZ":
+            jnz_instruction(program, parts)
         elif instruction == "IMPORT":
             variables = import_instruction(program, variables, parts)
         elif instruction == "LABEL":
@@ -239,10 +249,10 @@ def parse_instructions(display_addr, program, variables, parts, instruction, pc=
             display_addr = wchr_instruction(display_addr, program, parts)
         elif instruction == "WSTR":
             display_addr = wstr_instruction(display_addr, program, parts)
-        elif instruction in ["PUSH", "POP", "POKE2", "POT", "PEEK2", "JMP"]:
+        elif instruction in ["PUSH", "POP","PEEK", "POKE", "POKE2", "POT", "PEEK2", "JMP"]:
             unary_instruction(program, variables, parts, instruction)
-        elif instruction in ["SWAP"]:
-            swap_instruction(program, parts, instruction)
+        # elif instruction in ["SWAP"]:
+        #     swap_instruction(program, parts, instruction)
         elif instruction == "MOV":
             mov(program, parts, instruction, variables)
     else:
@@ -261,14 +271,19 @@ def swap_instruction(program, parts, instruction):
 
 def unary_instruction(program, variables, parts, instruction):
     reg = parts[1]
-    reg_num = reg
-
-    if reg not in variables:
-        reg_num = reg.replace("R", "").replace("#", "")
-    elif not ("@" in reg or "0x" in reg):
-        reg_num = variables[reg]
-
-    program.extend([assembly_to_opcode[instruction], reg_num])
+    
+    # Parse the operand as an arithmetic expression
+    try:
+        reg_num = parse_arithmetic_expression(reg, variables)
+    except ValueError:
+        # For backward compatibility if not an expression
+        reg_num = reg
+        if reg not in variables:
+            reg_num = reg.replace("R", "").replace("#", "")
+        elif not ("@" in reg or "0x" in reg):
+            reg_num = variables[reg]
+    
+    program.extend([assembly_to_opcode[instruction], str(reg_num)])
 
 
 def wchr_instruction(display_addr, program, parts):
@@ -302,6 +317,7 @@ def wchr_instruction(display_addr, program, parts):
 
 
 def wstr_instruction(display_addr, program, parts):
+    print(parts)
     string, x, y, scale, color = (parts[1], 
                                   int(parts[2].strip('#,').strip()), 
                                   parts[3], 
@@ -342,14 +358,20 @@ def import_instruction(program, variables, parts):
 def goto_instruction(program, parts, instruction):
     operand = parts[1]
     program.append(assembly_to_opcode[instruction])
-    program.append(str(operand))
+    # program.append(str(operand))
 
 
 def call_instruction(program, parts):
     reg = parts[1]
-    program.append("0x11")
-    program.append(reg)
-    program.append("0xDE")  # ? doesnt GOTO need a param?
+    program.append("0x11") #POT
+    program.append(reg) 
+    program.append("0xDE") # GOTO
+
+def jnz_instruction(program, parts):
+    reg = parts[1]
+    program.append("0x11") #POT
+    program.append(reg) 
+    program.append("0xEF") # JNZ
 
 
 def var_instruction(variables, parts):
@@ -381,33 +403,74 @@ def var_instruction(variables, parts):
         raise ValueError(f"Invalid variable declaration: {value}")
 
 
+def parse_arithmetic_expression(expr, variables):
+    """
+    Parse arithmetic expressions in the source code.
+    Returns the evaluated result.
+    """
+    if not isinstance(expr, str):
+        return expr
+        
+    # Remove whitespace
+    expr = expr.strip()
+    
+    # Skip if it's already processed or not an expression
+    if not any(op in expr for op in ['+', '-', '*', '/']):
+        # Handle basic numbers and variables
+        if expr.startswith('#'):
+            return int(expr[1:])
+        elif expr in variables:
+            if isinstance(variables[expr], dict):
+                return variables[expr].get("value") or variables[expr].get("location")
+            return variables[expr]
+        elif expr.startswith('0x'):
+            try:
+                return int(expr, 16)
+            except ValueError:
+                return expr
+        elif expr.isdigit():
+            return int(expr)
+        else:
+            # Not a parseable expression
+            return expr
+    
+    # Handle arithmetic operations
+    if '+' in expr:
+        parts = [p for p in expr.split('+') if p]
+        return sum(parse_arithmetic_expression(part, variables) for part in parts)
+    elif '-' in expr:
+        parts = [p for p in expr.split('-') if p]
+        if len(parts) == 1:  # Negative number
+            return -parse_arithmetic_expression(parts[0], variables)
+        result = parse_arithmetic_expression(parts[0], variables)
+        for part in parts[1:]:
+            result -= parse_arithmetic_expression(part, variables)
+        return result
+    elif '*' in expr:
+        parts = [p for p in expr.split('*') if p]
+        result = 1
+        for part in parts:
+            result *= parse_arithmetic_expression(part, variables)
+        return result
+    elif '/' in expr:
+        parts = [p for p in expr.split('/') if p]
+        if len(parts) < 2:
+            return expr  # Not a valid division expression
+        result = parse_arithmetic_expression(parts[0], variables)
+        for part in parts[1:]:
+            parsed_part = parse_arithmetic_expression(part, variables)
+            if parsed_part == 0:  # Avoid division by zero
+                return expr
+            result //= parsed_part
+        return result
+    
+    # If we can't parse it, return the original expression
+    return expr
+
+
 def load_instruction(program, variables, parts, instruction):
     opcode = assembly_to_opcode[instruction][parts[1].replace(",", "")]
-    if not (parts[2] in variables) and not ("0x" in parts[2]):
-        operand = int(parts[2].replace("#", ""))
-    else:
-        ost = []
-        vst = []
-        size = len(parts)
-        operand = variables[parts[2]] if not ("0x" in parts[2]) else parts[2]
-        # TODO: this snippet was used for basic arithmetics with vars when using load, it's ugly asf
-        # if size > 3:
-        #     for i in range(1,size-2):
-        #         if '-' in parts[2+i]:
-        #             ost.append('-')
-        #         elif '+' in parts[2+i]:
-        #             ost.append('+')
-        #         else:
-        #             vst.append(int(parts[2+i]))
-
-        #     ost_len = len(ost)
-        #     for i in range(ost_len):
-        #         a = vst.pop()
-        #         op = ost.pop()
-        #         if '-' in op:
-        #             operand -= a
-        #         elif '+' in op:
-        #             operand += a
+    operand = parse_arithmetic_expression(parts[2], variables)
     program.append(opcode)
     program.append(str(operand))
 
@@ -434,16 +497,25 @@ def mov(program, parts, instruction, variables):
 
 
 def replace_variables(program, variables):
-    # print(variables)
     for i in range(len(program)):
-        if "@" in str(program[i]):
-            program[i] = str(variables[program[i]]["value"])
-
-        elif program[i] in variables:
-            program[i] = str(variables[program[i]]["value"])
-
+        item = str(program[i])
+        
+        # Check if this is an arithmetic expression (contains +, -, *, /)
+        if any(op in item for op in ['+', '-', '*', '/']):
+            try:
+                program[i] = str(parse_arithmetic_expression(item, variables))
+                continue
+            except ValueError:
+                pass  # Not a valid expression, continue with normal processing
+        
+        # Normal variable replacement
+        if "@" in item:
+            program[i] = str(variables[item]["value"])
+        elif item in variables:
+            program[i] = str(variables[item]["value"])
         else:
-            program[i] = str(program[i])
+            program[i] = str(item)
+            
     return program
 
 
@@ -476,4 +548,4 @@ def assemble(asm_file, rom_file):
 
 
 if __name__ == "__main__":
-    assemble("program.asm", "./build/program.rom")
+    assemble("build/program.asm", "./build/program.rom")
