@@ -22,19 +22,9 @@ def run(source: str) -> None:
     compiler = PMXCompiler()
     asm = compiler.compile(statements)
     
-    # Post-process assembly to fix POT instructions
-    processed_asm = []
-    for instruction in asm:
-        # Fix POT instructions to include the required register operand
-        if instruction.startswith('POT ') and 'R' not in instruction:
-            # Replace 'POT value' with 'POT R1, value'
-            value = instruction[4:].strip()
-            instruction = f'POT R1, {value}'
-        processed_asm.append(instruction)
-    
-    # Output the assembly code
+    # Write the assembly code directly without post-processing
     with open("build/program.asm", "w") as f:
-        f.write("\n".join(processed_asm))
+        f.write("\n".join(asm))
 
 if __name__ == "__main__":
 #    argparse filename

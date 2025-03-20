@@ -51,6 +51,9 @@ class TokenType(Enum):
     PEEK2 = 46
     DEF = 47
     END = 48
+    MOUSE = 49
+    BREAK = 50
+    IMPORT = 51
     
 
     def __add__(a, b):

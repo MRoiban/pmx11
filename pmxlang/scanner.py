@@ -35,7 +35,10 @@ class Scanner:
         "poke2":TokenType.POKE2,
         "peek2":TokenType.PEEK2,
         "def":TokenType.DEF,
-        "end":TokenType.END
+        "end":TokenType.END,
+        "mouse":TokenType.MOUSE,
+        "break":TokenType.BREAK,
+        "import":TokenType.IMPORT,
     }
 
     def scanTokens(self):
@@ -131,7 +134,8 @@ class Scanner:
             case ".": self.addToken(TokenType.DOT)
             case "*": self.addToken(TokenType.STAR)
             case ",": self.addToken(TokenType.COMMA)
-            case "=": self.addToken(TokenType.EQUAL)
+            case "=": 
+                self.addToken(TokenType.EQUAL_EQUAL if self.match('=') else TokenType.EQUAL)
             case "!":
                 self.addToken(TokenType.BANG_EQUAL if self.match('=') else TokenType.BANG)
             case ">":

@@ -1,289 +1,15 @@
 from dataclasses import dataclass
-from re import X
-from typing import Protocol, Any, List, Optional
+from typing import List
 from pmxlang.lexer import Token, TokenType
-
-
-# Visitor protocols
-class ExprVisitor(Protocol):
-    def visit_binary_expr(self, expr: "Binary") -> Any: ...
-    def visit_grouping_expr(self, expr: "Grouping") -> Any: ...
-    def visit_literal_expr(self, expr: "Literal") -> Any: ...
-    def visit_unary_expr(self, expr: "Unary") -> Any: ...
-    def visit_variable_expr(self, expr: "Variable") -> Any: ...
-    def visit_assign_expr(self, expr: "Assign") -> Any: ...
-    def visit_function_expr(self, expr: "Function") -> Any: ...
-    def visit_end_expr(self, expr: "End") -> Any: ...
-    
-
-
-class StmtVisitor(Protocol):
-    def visit_expression_stmt(self, stmt: "Expression") -> Any: ...
-    def visit_for_stmt(self, stmt: "For") -> Any: ...
-    def visit_print_stmt(self, stmt: "Print") -> Any: ...
-    def visit_screen_stmt(self, stmt: "Screen") -> Any: ...
-    def visit_cls_stmt(self, stmt: "Cls") -> Any: ...
-    def visit_line_stmt(self, stmt: "Line") -> Any: ...
-    def visit_rect_stmt(self, stmt: "Rect") -> Any: ...
-    def visit_circle_stmt(self, stmt: "Circle") -> Any: ...
-    def visit_pixel_stmt(self, stmt: "Pixel") -> Any: ...
-    def visit_rectfill_stmt(self, stmt: "RectFill") -> Any: ...
-    def visit_sprint_stmt(self, stmt: "Sprint") -> Any: ...
-    def visit_poke_stmt(self, stmt: "Poke") -> Any: ...
-    def visit_poke2_stmt(self, stmt: "Poke2") -> Any: ...
-    def visit_peek_stmt(self, stmt: "Peek") -> Any: ...
-    def visit_peek2_stmt(self, stmt: "Peek2") -> Any: ...
-    def visit_function_stmt(self, stmt: "Function") -> Any: ...
-
-# Base classes
-@dataclass
-class Expr:
-    def accept(self, visitor: ExprVisitor) -> Any:
-        raise NotImplementedError
-
-
-@dataclass
-class Stmt:
-    def accept(self, visitor: StmtVisitor) -> Any:
-        raise NotImplementedError
-
-
-# Different expression types
-@dataclass
-class Binary(Expr):
-    left: Expr
-    operator: Token
-    right: Expr
-
-    def accept(self, visitor: ExprVisitor) -> Any:
-        return visitor.visit_binary_expr(self)
-
-
-@dataclass
-class Function(Expr):
-    name: Token
-    params: List[Token]
-    body: List[Stmt]
-
-    def accept(self, visitor: ExprVisitor) -> Any:
-        return visitor.visit_function_expr(self)
-
-@dataclass
-class End(Expr):
-    def accept(self, visitor: ExprVisitor) -> Any:
-        return visitor.visit_end_expr(self)
-
-@dataclass
-class Grouping(Expr):
-    expression: Expr
-
-    def accept(self, visitor: ExprVisitor) -> Any:
-        return visitor.visit_grouping_expr(self)
-
-
-@dataclass
-class Literal(Expr):
-    value: Any
-
-    def accept(self, visitor: ExprVisitor) -> Any:
-        return visitor.visit_literal_expr(self)
-
-
-@dataclass
-class Unary(Expr):
-    operator: Token
-    right: Expr
-
-    def accept(self, visitor: ExprVisitor) -> Any:
-        return visitor.visit_unary_expr(self)
-
-
-@dataclass
-class Variable(Expr):
-    name: Token
-
-    def accept(self, visitor: ExprVisitor) -> Any:
-        return visitor.visit_variable_expr(self)
-
-
-@dataclass
-class Assign(Expr):
-    name: Token
-    value: Expr
-
-    def accept(self, visitor: ExprVisitor) -> Any:
-        return visitor.visit_assign_expr(self)
-
-
-# Statement types
-@dataclass
-class Expression(Stmt):
-    expression: Expr
-
-    def accept(self, visitor: StmtVisitor) -> Any:
-        return visitor.visit_expression_stmt(self)
-
-
-@dataclass
-class For(Stmt):
-    init: Expr
-    condition: Expr
-    action: Expr
-    body: List[Stmt]
-
-    def accept(self, visitor: StmtVisitor) -> Any:
-        return visitor.visit_for_stmt(self)
-
-
-@dataclass
-class Print(Stmt):
-    body: List[Stmt]
-
-    def accept(self, visitor: StmtVisitor) -> Any:
-        return visitor.visit_print_stmt(self)
-
-
-@dataclass
-class Screen(Stmt):
-    body: List[Stmt]
-
-    def accept(self, visitor: StmtVisitor) -> Any:
-        return visitor.visit_screen_stmt(self)
-
-
-@dataclass
-class Cls(Stmt):
-    body: List[Stmt]
-
-    def accept(self, visitor: StmtVisitor) -> Any:
-        return visitor.visit_cls_stmt(self)
-
-
-@dataclass
-class Line(Stmt):
-    x1: Expr
-    y1: Expr
-    x2: Expr
-    y2: Expr
-    scale: Expr
-    color: Expr
-
-    def accept(self, visitor: StmtVisitor) -> Any:
-        return visitor.visit_line_stmt(self)
-
-
-@dataclass
-class Rect(Stmt):
-    x: Expr
-    y: Expr
-    w: Expr
-    h: Expr
-    scale: Expr
-    color: Expr
-
-    def accept(self, visitor: StmtVisitor) -> Any:
-        return visitor.visit_rect_stmt(self)
-
-@dataclass
-class RectFill(Stmt):
-    x: Expr
-    y: Expr
-    w: Expr
-    h: Expr
-    scale: Expr
-    color: Expr
-
-    def accept(self, visitor: StmtVisitor) -> Any:
-        return visitor.visit_rectfill_stmt(self)
-
-@dataclass
-class Circle(Stmt):
-    body: List[Stmt]
-
-    def accept(self, visitor: StmtVisitor) -> Any:
-        return visitor.visit_circle_stmt(self)
-
-@dataclass
-class Poke(Stmt):
-    addr: int
-    value: Expr
-
-    def accept(self, visitor: StmtVisitor) -> Any:
-        return visitor.visit_poke_stmt(self)
-
-@dataclass
-class Peek(Stmt):
-    addr: int
-
-    def accept(self, visitor: StmtVisitor) -> Any:
-        return visitor.visit_peek_stmt(self)
-
-@dataclass
-class Poke2(Stmt):
-    addr: int
-    value: Expr
-
-    def accept(self, visitor: StmtVisitor) -> Any:
-        return visitor.visit_poke2_stmt(self)
-
-@dataclass
-class Peek2(Stmt):
-    addr: int
-
-    def accept(self, visitor: StmtVisitor) -> Any:
-        return visitor.visit_peek2_stmt(self)
-
-@dataclass
-class Pixel(Stmt):
-    x: Expr
-    y: Expr
-    scale: Expr
-    color: Expr
-
-    def accept(self, visitor: StmtVisitor) -> Any:
-        return visitor.visit_pixel_stmt(self)
-
-@dataclass
-class Sprint(Stmt):
-    string: Expr
-    x: Expr
-    y: Expr
-    scale: Expr
-    color: Expr
-
-    def accept(self, visitor: StmtVisitor) -> Any:
-        return visitor.visit_sprint_stmt(self)
-
-class AstPrinter:
-    def print(self, expr: Expr) -> str:
-        return expr.accept(self)
-
-    def visit_binary_expr(self, expr: Binary) -> str:
-        return self.parenthesize(expr.operator.lexeme, expr.left, expr.right)
-
-    def visit_grouping_expr(self, expr: Grouping) -> str:
-        return self.parenthesize("group", expr.expression)
-
-    def visit_literal_expr(self, expr: Literal) -> str:
-        return "nil" if expr.value is None else str(expr.value)
-
-    def visit_unary_expr(self, expr: Unary) -> str:
-        return self.parenthesize(expr.operator.lexeme, expr.right)
-
-    def visit_variable_expr(self, expr: "Variable") -> str:
-        return expr.name.lexeme
-
-    def visit_assign_expr(self, expr: "Assign") -> str:
-        return f"(= {expr.name.lexeme} {expr.value.accept(self)})"
-
-    def parenthesize(self, name: str, *exprs: Expr) -> str:
-        return f"({name} {' '.join(expr.accept(self) for expr in exprs)})"
-
-
-# # example usage
-# expr = Binary(Literal(1), "+", Binary(Literal(2), "*", Literal(3)))
-# printer = AstPrinter()
-# print(printer.print(expr))  # prints "(+ 1 (* 2 3))"
+from pmxlang.parser.expr import (
+    Expr, Binary, End, Grouping, 
+    Literal, Unary, Variable, Assign, Poke, Peek, Poke2, Peek2
+)
+from pmxlang.parser.stmt import (
+    Stmt, Expression, For, Print, Screen, Cls, Line, 
+    Rect, Circle, Pixel, RectFill, Sprint,
+    Function, If, Mouse, While, Break, Import
+)
 
 
 @dataclass
@@ -299,6 +25,8 @@ class Parser:
     def statement(self) -> Stmt:
         if self.match(TokenType.FOR):
             return self.for_statement()
+        elif self.match(TokenType.IF):
+            return self.if_statement()
         elif self.match(TokenType.PRINT):
             return self.print_statement()
         elif self.match(TokenType.SCREEN):
@@ -329,8 +57,16 @@ class Parser:
             return self.function_statement()
         elif self.match(TokenType.END):
             return self.end_statement()
-
+        elif self.match(TokenType.MOUSE):
+            return self.mouse_statement()
+        elif self.match(TokenType.WHILE):
+            return self.while_statement()
+        elif self.match(TokenType.BREAK):
+            return self.break_statement()
+        elif self.match(TokenType.IMPORT):
+            return self.import_statement()
         return self.expression_statement()
+
 
     def function_statement(self) -> Stmt:
         name = self.consume(TokenType.IDENTIFIER, "Expect function name after 'def'")
@@ -346,7 +82,7 @@ class Parser:
         return Function(name, params, body)
 
     def end_statement(self) -> Stmt:
-        return End()
+        return Expression(End())
 
     def poke_statement(self) -> Stmt:   
         self.consume(TokenType.LEFT_PAREN, "Expect '(' after poke call")
@@ -354,13 +90,15 @@ class Parser:
         self.consume(TokenType.COMMA, "Expect ',' after poke addr")
         value = self.expression()
         self.consume(TokenType.RIGHT_PAREN, "Expect ')' after poke value")
-        return Poke(addr, value)
+        from pmxlang.parser.expr import Poke as PokeExpr
+        return Expression(PokeExpr(addr, value))
 
     def peek_statement(self) -> Stmt:
         self.consume(TokenType.LEFT_PAREN, "Expect '(' after peek call")
         addr = self.expression()
         self.consume(TokenType.RIGHT_PAREN, "Expect ')' after peek addr")
-        return Peek(addr)
+        from pmxlang.parser.expr import Peek as PeekExpr
+        return Expression(PeekExpr(addr))
 
     def poke2_statement(self) -> Stmt:
         self.consume(TokenType.LEFT_PAREN, "Expect '(' after poke2 call")
@@ -368,13 +106,15 @@ class Parser:
         self.consume(TokenType.COMMA, "Expect ',' after poke2 addr")
         value = self.expression()
         self.consume(TokenType.RIGHT_PAREN, "Expect ')' after poke2 value")
-        return Poke2(addr, value)
+        from pmxlang.parser.expr import Poke2 as Poke2Expr
+        return Expression(Poke2Expr(addr, value))
 
     def peek2_statement(self) -> Stmt:
         self.consume(TokenType.LEFT_PAREN, "Expect '(' after peek2 call")
         addr = self.expression()    
         self.consume(TokenType.RIGHT_PAREN, "Expect ')' after peek2 addr")
-        return PEEK2(addr)
+        from pmxlang.parser.expr import Peek2 as Peek2Expr
+        return Expression(Peek2Expr(addr))
 
     def print_statement(self) -> Stmt:
         self.consume(TokenType.LEFT_PAREN, "Expect '(' after print call")
@@ -384,15 +124,29 @@ class Parser:
 
     def screen_statement(self) -> Stmt:
         self.consume(TokenType.LEFT_PAREN, "Expect '(' after screen call")
-        body = self.expression()
+        power = self.expression()
+        self.consume(TokenType.COMMA, "Expect ',' after screen power")
+        width = self.expression()
+        self.consume(TokenType.COMMA, "Expect ',' after screen width")
+        height = self.expression()
+        self.consume(TokenType.COMMA, "Expect ',' after screen height")
+        background = self.expression()
+        self.consume(TokenType.COMMA, "Expect ',' after screen background")
+        borderless = self.expression()
         self.consume(TokenType.RIGHT_PAREN, "Expect ')' after screen body")
-        return Screen(body)
+        return Screen(power, width, height, background, borderless)
 
     def cls_statement(self) -> Stmt:
         self.consume(TokenType.LEFT_PAREN, "Expect '(' after cls call")
         body = self.expression()
         self.consume(TokenType.RIGHT_PAREN, "Expect ')' after cls body")
         return Cls(body)
+
+    def import_statement(self) -> Stmt:
+        self.consume(TokenType.LEFT_PAREN, "Expect '(' after import call")
+        path = self.consume(TokenType.STRING, "Expect string after import call")
+        self.consume(TokenType.RIGHT_PAREN, "Expect ')' after import body")
+        return Import(path)
 
     def line_statement(self) -> Stmt:
         self.consume(TokenType.LEFT_PAREN, "Expect '(' after line call")
@@ -460,6 +214,12 @@ class Parser:
         self.consume(TokenType.RIGHT_PAREN, "Expect ')' after pixel body")
         return Pixel(x, y, scale, color)
 
+    def mouse_statement(self) -> Stmt:
+        self.consume(TokenType.LEFT_PAREN, "Expect '(' after mouse call")
+        body = self.expression()
+        self.consume(TokenType.RIGHT_PAREN, "Expect ')' after mouse body")
+        return Mouse(body)
+
     def sprint_statement(self) -> Stmt:
         self.consume(TokenType.LEFT_PAREN, "Expect '(' after sprint call")
         string = self.expression()
@@ -474,6 +234,23 @@ class Parser:
         self.consume(TokenType.RIGHT_PAREN, "Expect ')' after sprint body")
         return Sprint(string, x, y, scale, color)
 
+    def break_statement(self) -> Stmt:
+        return Break()
+
+    def while_statement(self) -> Stmt:
+        condition = self.expression()
+        self.consume(TokenType.COLON, "Expect ':' after while condition")
+        
+        body = []
+        while not (self.check(TokenType.END) or self.check(TokenType.EOF)):
+            body.append(self.statement())
+        
+        # Consume the END token if present
+        if self.check(TokenType.END):
+            self.consume(TokenType.END, "Expect 'end' to close while loop")
+        return While(condition, body)
+
+
     def for_statement(self) -> Stmt:
         # Parse 'for init, condition, action:'
         init = self.expression()
@@ -486,10 +263,43 @@ class Parser:
 
         self.consume(TokenType.COLON, "Expect ':' after for loop clauses")
 
-        # Parse body statements
-        body = [self.statement()]
+        # Parse body statements until END statement
+        body = []
+        while not (self.check(TokenType.END) or self.check(TokenType.EOF)):
+            body.append(self.statement())
+        
+        # Consume the END token if present
+        if self.check(TokenType.END):
+            self.consume(TokenType.END, "Expect 'end' to close for loop")
 
         return For(init, condition, action, body)
+        
+    def if_statement(self) -> Stmt:
+        # Parse condition
+        condition = self.expression()
+        
+        self.consume(TokenType.COLON, "Expect ':' after if condition")
+        
+        # Parse body statements until END statement or ELSE token
+        body = []
+        while not (self.check(TokenType.END) or self.check(TokenType.ELSE) or self.check(TokenType.EOF)):
+            body.append(self.statement())
+        
+        # Check for else clause
+        else_body = None
+        if self.match(TokenType.ELSE):
+            self.consume(TokenType.COLON, "Expect ':' after else")
+            
+            # Parse else body statements until END statement
+            else_body = []
+            while not (self.check(TokenType.END) or self.check(TokenType.EOF)):
+                else_body.append(self.statement())
+        
+        # Consume the END token if present
+        if self.check(TokenType.END):
+            self.consume(TokenType.END, "Expect 'end' to close if statement")
+            
+        return If(condition, body, else_body)
 
     def expression_statement(self) -> Stmt:
         expr = self.expression()
@@ -596,6 +406,30 @@ class Parser:
             return Literal(self.previous().lexeme)
         if self.match(TokenType.STRING):
             return Literal(self.previous().lexeme)
+        if self.match(TokenType.PEEK):
+            self.consume(TokenType.LEFT_PAREN, "Expect '(' after peek call")
+            addr = self.expression()
+            self.consume(TokenType.RIGHT_PAREN, "Expect ')' after peek addr")
+            return Peek(addr)
+        if self.match(TokenType.PEEK2):
+            self.consume(TokenType.LEFT_PAREN, "Expect '(' after peek2 call")
+            addr = self.expression()
+            self.consume(TokenType.RIGHT_PAREN, "Expect ')' after peek2 addr")
+            return Peek2(addr)
+        if self.match(TokenType.POKE):
+            self.consume(TokenType.LEFT_PAREN, "Expect '(' after poke call")
+            addr = self.expression()
+            self.consume(TokenType.COMMA, "Expect ',' after poke addr")
+            value = self.expression()
+            self.consume(TokenType.RIGHT_PAREN, "Expect ')' after poke value")
+            return Poke(addr, value)
+        if self.match(TokenType.POKE2):
+            self.consume(TokenType.LEFT_PAREN, "Expect '(' after poke2 call")
+            addr = self.expression()
+            self.consume(TokenType.COMMA, "Expect ',' after poke2 addr")
+            value = self.expression()
+            self.consume(TokenType.RIGHT_PAREN, "Expect ')' after poke2 value")
+            return Poke2(addr, value)
         if self.match(TokenType.IDENTIFIER):
             return Variable(self.previous())
         if self.match(TokenType.LEFT_PAREN):
@@ -619,11 +453,9 @@ class Parser:
     def synchronize(self):
         self.advance()
         while not self.isAtEnd():
-            # if self.peek().type == TokenType.SEMICOLON:
-            #     return
             match self.peek().type:
                 case TokenType.IF:
-                    pass
+                    return
                 case TokenType.RETURN:
                     return
                 case TokenType.FOR:
@@ -665,13 +497,4 @@ class Parser:
         except SyntaxError as e:
             print(f"Syntax Error: {e}")
             self.synchronize()
-            raise  # Re-raise to show the full error
-
-
-# Test the parser with a simple expression: 1 + 2 * 3
-
-
-# parser = Parser(test_tokens)
-# ast = parser.parse()
-# printer = AstPrinter()
-# print("AST:", printer.print(ast))
+            raise  # Re-raise to show the full error 
