@@ -17,8 +17,10 @@ typedef struct PMXDisplay {
     int width, height, x1, x2, y1, y2, scale;
     Uint32 palette[4];
     Uint16 *pixels;
+    Uint16 *background;
     Uint8 *fg, *bg;
     Uint8 power;
+    Uint8 borderless;
     Uint8 bool_update;
     int permanent_buffer[DISPLAY_SIZE];
 } PMXDisplay;
@@ -26,6 +28,8 @@ typedef struct PMXDisplay {
 extern PMXDisplay pmx_display;
 void
 initDisplay(int w, int h, Uint32 bg);
+void
+shutdownDisplay();
 void
 display_update();
 void

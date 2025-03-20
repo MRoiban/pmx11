@@ -47,6 +47,7 @@ typedef struct {
     int registers[REGISTER_NUMBER]; // R1, R2, R3, ...
     int dev[0x100];
     int time;
+    int log_enabled; // Flag to enable/disable logging
 } PMX;
 
 void

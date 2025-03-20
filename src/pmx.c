@@ -55,7 +55,17 @@
 #define duplicate(pmx) WST[SP++] = WST[SP];SP++; PC++
 #define load(pmx, reg, value) if (reg >= 1 && reg <= REGISTER_NUMBER) R[reg - 1] = value; PC += 2
 #define read_pc(pmx) WST[++SP] = PC; PC++
-#define push(pmx, reg) if (reg >= 1 && reg <= REGISTER_NUMBER) WST[++SP] = R[reg - 1]; PC += 2
+#define push(pmx, reg) do { \
+    /* Check if the register number is valid */ \
+    if (reg >= 1 && reg <= REGISTER_NUMBER) { \
+        /* Push the value from the register to the stack */ \
+        SP++; \
+        WST[SP] = R[reg - 1]; \
+    } else { \
+        fprintf(stderr, "Error: Invalid register number %d for PUSH instruction\n", reg); \
+    } \
+    PC += 2; \
+} while(0)
 #define pop(pmx, reg) if (reg >= 1 && reg <= REGISTER_NUMBER) R[reg - 1] = WST[SP--]; PC += 2
 #define jump(pmx, pc) PC = pc
 #define over(pmx) WST[SP++] = WST[SP--];SP += 1;PC++
@@ -103,6 +113,7 @@ init_pmx(PMX *pmx, VariableTable *table) {
     PC = 0;
     pmx->time = 0;
     pmx->step = 0;
+    pmx->log_enabled = 0; // Logging disabled by default
 }
 
 void
@@ -545,6 +556,9 @@ step(PMX *pmx) {
     case 0x0F:
         lower_than(pmx);
         break;
+    case 0x0E:
+        greater_than(pmx);
+        break;
     case 0x10:
         duplicate(pmx);
         break;
@@ -642,7 +656,9 @@ step(PMX *pmx) {
         running = 0;
         break;
     }
+#ifdef LOG_ENABLED
     dump(pmx, instruction);
+#endif
 }
 
 #define MAX_LINE_LENGTH 20000

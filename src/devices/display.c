@@ -13,9 +13,31 @@
 #include "display.h"
 #include <SDL.h>
 #include <stdio.h>
+#include <string.h>
 
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
+
+// Define display device memory addresses
+#define DISPLAY_POWER_ADDR 0x10
+#define DISPLAY_CLEAR_ADDR 0x11
+#define DISPLAY_CHAR_ADDR 0x12
+#define DISPLAY_MOUSE_ADDR 0x13
+#define DISPLAY_PIXEL_ADDR 0x14
+#define DISPLAY_LINE_ADDR 0x15
+#define DISPLAY_RECT_ADDR 0x16
+#define DISPLAY_RECTFILL_ADDR 0x17
+#define DISPLAY_HELLO_ADDR 0x18
+#define DISPLAY_SPRINT_ADDR 0x19
+
+// Display parameter memory locations
+#define PARAM_BASE_ADDR 0x100
+#define PARAM_X 0x100
+#define PARAM_Y 0x101
+#define PARAM_W 0x102
+#define PARAM_H 0x103
+#define PARAM_S 0x104
+#define PARAM_C 0x105
 
 enum ALPHABET_ENUM {
     SPACE,
@@ -122,7 +144,9 @@ PMXDisplay pmx_display = {
     .width = SCREEN_WIDTH,
     .height = SCREEN_HEIGHT,
     .pixels = NULL, // Initialize with the correct size
+    .background = NULL,
     .power = 0,
+    .bool_update = 0,
 };
 static SDL_Window *window;
 static SDL_Renderer *renderer;
@@ -136,8 +160,8 @@ static SDL_Surface *screenSurface = NULL;
  */
 void
 updateDisplayBg(Uint32 bg) {
-    screenSurface = SDL_GetWindowSurface(window);
-    SDL_UpdateWindowSurface(window);
+    // This function is now redundant with our improved double buffering
+    // Just keep it as a no-op for backward compatibility
 }
 
 /**
@@ -148,23 +172,28 @@ updateDisplayBg(Uint32 bg) {
  * @param scale The scale factor of the pixel
  * @param color The color of the pixel
  */
-void
-drawPixel(int x, int y, int scale, Uint32 color) {
-    for (int i = 1; i < scale + 1; i++) {
+void drawPixel(int x, int y, int scale, Uint32 color) {
+    // Safety check to prevent buffer overflows
+    if (x < 0 || y < 0 || 
+        x >= pmx_display.width || 
+        y >= pmx_display.height) {
+        return;
+    }
+    
+    for (int i = 0; i < scale; i++) {
         for (int j = 0; j < scale; j++) {
-            int x1 = ((x * scale) + (i - 1)) * 800;
-            int y1 = (y * scale) + j;
-            // printf("x: %d\n", x1);
-            // printf("y: %d\n", y1);
-            int c1 = x1 + y1;
-            // printf("c1: %d\n", c1);
-            pmx_display.pixels[c1] = color;
-            // if (flag == 1) {
-            //     pmx_display.permanent_buffer[c1] = color;
-            // }
+            // Calculate the actual screen coordinates
+            int screenX = x * scale + i;
+            int screenY = y * scale + j;
+            
+            // Check if the scaled coordinates are within bounds
+            if (screenX >= 0 && screenX < pmx_display.width && 
+                screenY >= 0 && screenY < pmx_display.height) {
+                int index = screenY * pmx_display.width + screenX;
+                pmx_display.pixels[index] = color;
+            }
         }
     }
-    pmx_display.bool_update = 1;
 }
 
 /**
@@ -172,16 +201,20 @@ drawPixel(int x, int y, int scale, Uint32 color) {
  *
  * @param x The x-coordinate of the rectangle
  * @param y The y-coordinate of the rectangle
- * @param width The width of the rectangle
- * @param height The height of the rectangle
- * @param scale The scale factor of the rectangle
- * @param color The color of the rectangle
+ * @param w The width of the rectangle
+ * @param h The height of the rectangle
+ * @param s The scale factor of the rectangle
+ * @param c The color of the rectangle
  */
 void
-drawRect(int x, int y, int width, int height, int scale, Uint32 color) {
-    for (int i = 0; i < width; i++) {
-        for (int j = 0; j < height; j++) {
-            drawPixel(x + i, y + j, scale, color);
+drawRect(int x, int y, int w, int h, int s, int c) {
+    if (s <= 0)
+        return;
+    
+    // Draw a filled rectangle by iterating through each pixel
+    for (int i = 0; i < w; i++) {
+        for (int j = 0; j < h; j++) {
+            drawPixel(x + i, y + j, s, c);
         }
     }
 }
@@ -202,15 +235,14 @@ drawRect(int x, int y, int width, int height, int scale, Uint32 color) {
 void
 drawBitmap(int i, int j, int index, int width, const char *bitmap[], int rows,
            int cols, int scale, Uint32 color) {
-    int startX = width * index;
-    int endX = width * (index + 1);
+    const int startX = width * index;
+    const int endX = width * (index + 1);
 
     for (int y = 0; y < rows; y++) {
+        const char *row = bitmap[y];
         for (int x = startX; x < endX; x++) {
-            if (bitmap[y][x] == '1') {
-                int newX = y + j;
-                int newY = x - startX + i;
-                drawPixel(newX, newY, scale, color);
+            if (row[x] == '1') {
+                drawPixel(y + j, x - startX + i, scale, color);
             }
         }
     }
@@ -339,6 +371,42 @@ drawHexString(Uint8 hexString[], int length, int x, int y, int scale, Uint32 col
 }
 
 /**
+ * @brief Shutdown the display and free resources
+ */
+void
+shutdownDisplay() {
+    // Release resources in the correct order
+    if (texture != NULL) {
+        SDL_DestroyTexture(texture);
+        texture = NULL;
+    }
+    
+    if (renderer != NULL) {
+        SDL_DestroyRenderer(renderer);
+        renderer = NULL;
+    }
+    
+    if (window != NULL) {
+        SDL_DestroyWindow(window);
+        window = NULL;
+    }
+    
+    // Free allocated memory
+    if (pmx_display.pixels != NULL) {
+        free(pmx_display.pixels);
+        pmx_display.pixels = NULL;
+    }
+    
+    if (pmx_display.background != NULL) {
+        free(pmx_display.background);
+        pmx_display.background = NULL;
+    }
+    
+    pmx_display.power = 0;
+    pmx_display.bool_update = 0;
+}
+
+/**
  * @brief Initialize the display
  *
  * @param w The width of the display
@@ -346,47 +414,92 @@ drawHexString(Uint8 hexString[], int length, int x, int y, int scale, Uint32 col
  * @param bg The background color of the display
  */
 void
-initDisplay(int w, int h, Uint32 bg) {
-    pmx_display.width = SCREEN_WIDTH;
-    pmx_display.height = SCREEN_HEIGHT;
-    pmx_display.pixels =
-        (Uint16 *)malloc(SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(Uint16));
-
-    for (int i = 0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++) {
-        pmx_display.pixels[i] = bg;
-        // pmx_display.pixels[i] =0x000;
+initDisplay(int width, int height, Uint32 bg) {
+    // Shutdown any previous display to free resources
+    shutdownDisplay();
+    
+    // Set up display dimensions
+    pmx_display.width = width;
+    pmx_display.height = height;
+    
+    // Initialize SDL with video subsystem if not already initialized
+    if (SDL_WasInit(SDL_INIT_VIDEO) == 0) {
+        if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0) {
+            fprintf(stderr, "SDL could not initialize video! SDL_Error: %s\n", SDL_GetError());
+            return;
+        }
+    }
+    
+    // Allocate memory for the display buffers with proper alignment
+    pmx_display.pixels = 
+        (Uint16 *)malloc(width * height * sizeof(Uint16));
+    pmx_display.background = 
+        (Uint16 *)malloc(width * height * sizeof(Uint16));
+        
+    if (!pmx_display.pixels || !pmx_display.background) {
+        fprintf(stderr, "Failed to allocate memory for display buffers\n");
+        shutdownDisplay();
+        return;
     }
 
-    // drawString("PMX VIRTUAL MACHINE", 0, 0, 5, colors_map[2].hex);
+    // Initialize both buffers with the background color
+    for (int i = 0; i < width * height; i++) {
+        pmx_display.pixels[i] = bg;
+        pmx_display.background[i] = bg;
+    }
 
-    // Create a window
-    window = SDL_CreateWindow("PMX Virtual Machine", SDL_WINDOWPOS_UNDEFINED,
-                              SDL_WINDOWPOS_UNDEFINED, pmx_display.width,
-                              pmx_display.height, SDL_WINDOW_SHOWN);
+    // Create a window with the correct size and position
+    window = SDL_CreateWindow(
+        "PMX Virtual Machine", 
+        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
+        pmx_display.width, pmx_display.height, 
+        SDL_WINDOW_SHOWN | (pmx_display.borderless ? SDL_WINDOW_BORDERLESS : 0)
+    );
+    
     if (window == NULL) {
         fprintf(stderr, "Failed to create window: %s\n", SDL_GetError());
-        SDL_Quit();
+        shutdownDisplay();
+        return;
     }
 
-    // Create a renderer
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    // Create a renderer with VSync and hardware acceleration
+    renderer = SDL_CreateRenderer(
+        window, -1, 
+        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
+    );
+    
     if (renderer == NULL) {
         fprintf(stderr, "Failed to create renderer: %s\n", SDL_GetError());
-        SDL_DestroyWindow(window);
-        SDL_Quit();
+        shutdownDisplay();
+        return;
     }
 
-    updateDisplayBg(bg);
-
-    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB444,
-                                SDL_TEXTUREACCESS_STREAMING, pmx_display.width,
-                                pmx_display.height);
+    // Set the render logical size to match our pixel dimensions
+    SDL_RenderSetLogicalSize(renderer, pmx_display.width, pmx_display.height);
+    
+    // Create texture with streaming access for efficient updates
+    texture = SDL_CreateTexture(
+        renderer,
+        SDL_PIXELFORMAT_RGB444,  
+        SDL_TEXTUREACCESS_STREAMING, 
+        pmx_display.width, pmx_display.height
+    );
+    
     if (texture == NULL) {
         fprintf(stderr, "Unable to create texture: %s\n", SDL_GetError());
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
+        shutdownDisplay();
+        return;
     }
+    
+    // Enable bilinear filtering for smoother scaling
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+    
+    // Set power flag and trigger initial update
+    pmx_display.power = 1;
+    pmx_display.bool_update = 1;
+    
+    // Initial display update to show the blank screen
+    display_update();
 }
 
 /**
@@ -394,27 +507,48 @@ initDisplay(int w, int h, Uint32 bg) {
  */
 void
 display_update() {
-    if (pmx_display.bool_update) {
-        // Check if an update is necessary
-        if (SDL_UpdateTexture(texture, NULL, pmx_display.pixels,
-                              SCREEN_WIDTH * sizeof(Uint16)) != 0) {
-            // Handle error
-            fprintf(stderr, "Failed to update texture: %s\n", SDL_GetError());
-            return;
-        }
-
-        // Clear the renderer, copy the texture, and present the updated frame
-        SDL_RenderClear(renderer);
-        if (SDL_RenderCopy(renderer, texture, NULL, NULL) != 0) {
-            // Handle error
-            fprintf(stderr, "Failed to copy texture to renderer: %s\n",
-                    SDL_GetError());
-            return;
-        }
-        SDL_RenderPresent(renderer);
-
-        pmx_display.bool_update = 0; // Reset the update flag
+    // Skip unnecessary updates
+    if (!pmx_display.bool_update) {
+        return;
     }
+    
+    // Skip if texture is invalid
+    if (texture == NULL) {
+        fprintf(stderr, "Cannot update display: texture is NULL\n");
+        return;
+    }
+    
+    Uint32 frameStart = SDL_GetTicks();
+    
+    // Lock the texture before updating it to ensure atomic operations
+    void* pixelData;
+    int pitch;
+    if (SDL_LockTexture(texture, NULL, &pixelData, &pitch) != 0) {
+        fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
+        return;
+    }
+    
+    // Copy our pixel data to the locked texture memory
+    // This ensures the copy is atomic and not visible until presented
+    memcpy(pixelData, pmx_display.pixels, pmx_display.width * pmx_display.height * sizeof(Uint16));
+    
+    // Unlock texture once copying is done
+    SDL_UnlockTexture(texture);
+    
+    // Clear and render in a single step
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    SDL_RenderPresent(renderer);
+    
+    // Control frame rate to match monitor refresh rate (typically 60Hz)
+    Uint32 frameTime = SDL_GetTicks() - frameStart;
+    Uint32 frameDelay = 16; // Target ~60 FPS
+    if (frameDelay > frameTime) {
+        SDL_Delay(frameDelay - frameTime);
+    }
+    
+    // Reset the update flag only after the complete render cycle
+    pmx_display.bool_update = 0;
 }
 
 /**
@@ -425,9 +559,9 @@ display_update() {
  */
 int
 char_to_hex(char character) {
-    int hex;
+    int hex = 0;  // Default value if not found
     for (int i = 0; i < ALPHABET_NUMBER; i++) {
-        if (alphabet_map[i].UpLetter == character) {
+        if (alphabet_map[i].UpLetter && *alphabet_map[i].UpLetter == character) {
             hex = alphabet_map[i].hex;
             break;
         }
@@ -514,75 +648,97 @@ drawHelloHex(int x, int y, int scale, Uint32 color) {
  */
 void
 display_deo(PMX *pmx, Uint8 addr) {
-    // printf("dev: %d\n", pmx->dev[addr]);
-    // printf("deo addr: %d\n", pmx->dev[addr]);
+    // Handle various display device operations
     switch (addr) {
-    case 0x10:
+    case DISPLAY_POWER_ADDR: // 0x10
         if (pmx_display.power == 0) {
-            initDisplay(600, 420, 0x000);
+            int width = PEEK2(0x1B);
+            int height = PEEK2(0x1C);
+            int background = PEEK2(0x1D);
+            int borderless = PEEK2(0x1E);
+            pmx_display.borderless = borderless;
+            printf("width:%d, height:%d, bg:%d, borderless:%d\n", width, height, background, borderless);
+            // Validate dimensions to avoid crashes
+            if (width <= 0 || width > 1920) width = SCREEN_WIDTH;
+            if (height <= 0 || height > 1080) height = SCREEN_HEIGHT;
+            
+            printf("Initializing display with width=%d, height=%d, bg=0x%x\n", width, height, background);
+            
+            initDisplay(width, height, background);
             pmx_display.power = 1;
         }
         break;
-    case 0x11:
-        drawRect(0, 0, 600, 800, 1, 0x000);
+        
+    case DISPLAY_CLEAR_ADDR: // 0x11
+        // Perform a deep copy from background to pixels buffer
+        // This operation must be atomic to prevent tearing
+        memcpy(pmx_display.pixels, pmx_display.background, pmx_display.width * pmx_display.height * sizeof(Uint16));
         break;
-    case 0x12:
+        
+    case DISPLAY_CHAR_ADDR: // 0x12
         drawChar_mem(pmx);
         break;
-    case 0x13: {
-        // Draw Mouse
+        
+    case DISPLAY_MOUSE_ADDR: { // 0x13
+        // Draw Mouse - uses the current mouse position from device memory
         int x = PEEK2(0x25);
         int y = PEEK2(0x26);
         drawBitmap(x / 2, y / 2, 0, cursor.width, cursor.bitmap, cursor.height,
                    cursor.width, 2, 0xfff);
         break;
     }
-    case 0x14: {
-        // pixel: x,y,s,c
-        int x = PEEK(0x100);
-        int y = PEEK(0x101);
-        int s = PEEK(0x102);
-        int c = PEEK(0x103);
+    
+    case DISPLAY_PIXEL_ADDR: { // 0x14
+        // pixel: x,y,s,c - directly read parameters from memory
+        int x = PEEK(PARAM_X);
+        int y = PEEK(PARAM_Y);
+        int s = PEEK(PARAM_W);  // Scale parameter at 0x102
+        int c = PEEK(PARAM_H);  // Color parameter at 0x103
         drawPixel(x, y, s, c);
         break;
     }
-    case 0x15: {
+    
+    case DISPLAY_LINE_ADDR: { // 0x15
         // line: x1,y1,x2,y2,s,c
-        int x1 = PEEK(0x100);
-        int y1 = PEEK(0x101);
-        int x2 = PEEK(0x102);
-        int y2 = PEEK(0x103);
-        int s = PEEK(0x104);
-        int c = PEEK(0x105);
-        drawLine(x1, y1, x2, y2, s, c);  // Corrected parameter order
+        int x1 = PEEK(PARAM_X);
+        int y1 = PEEK(PARAM_Y);
+        int x2 = PEEK(PARAM_W); // Reusing the W parameter for x2
+        int y2 = PEEK(PARAM_H); // Reusing the H parameter for y2
+        int s = PEEK(PARAM_S);
+        int c = PEEK(PARAM_C);
+        drawLine(x1, y1, x2, y2, s, c);
         break;
     }
-    case 0x16: {
+    
+    case DISPLAY_RECT_ADDR: { // 0x16
         // rectangle: x,y,w,h,s,c
-        int x = PEEK(0x100);
-        int y = PEEK(0x101);
-        int w = PEEK(0x102);
-        int h = PEEK(0x103);
-        int s = PEEK(0x104);
-        int c = PEEK(0x105);
-        drawLine(x, y, x + w, y, s, c);
-        drawLine(x, y, x, y + h, s, c);
-        drawLine(x + w, y, x + w, y + h, s, c);
-        drawLine(x, y + h, x + w, y + h, s, c);
+        int x = PEEK(PARAM_X);
+        int y = PEEK(PARAM_Y);
+        int w = PEEK(PARAM_W);
+        int h = PEEK(PARAM_H);
+        int s = PEEK(PARAM_S);
+        int c = PEEK(PARAM_C);
+        // Draw the rectangle outline
+        drawLine(x, y, x + w, y, s, c);         // top
+        drawLine(x, y, x, y + h, s, c);         // left
+        drawLine(x, y + h, x + w, y + h, s, c); // bottom
+        drawLine(x + w, y, x + w, y + h, s, c); // right
         break;
     }
-    case 0x17: {
+    
+    case DISPLAY_RECTFILL_ADDR: { // 0x17
         // rectangle fill: x,y,w,h,s,c
-        int x = PEEK(0x100);    
-        int y = PEEK(0x101);
-        int w = PEEK(0x102);
-        int h = PEEK(0x103);
-        int s = PEEK(0x104);
-        int c = PEEK(0x105);
+        int x = PEEK(PARAM_X);    
+        int y = PEEK(PARAM_Y);
+        int w = PEEK(PARAM_W);
+        int h = PEEK(PARAM_H);
+        int s = PEEK(PARAM_S);
+        int c = PEEK(PARAM_C);
         drawRect(x, y, w, h, s, c);
         break;
     }
-    case 0x18: {
+    
+    case DISPLAY_HELLO_ADDR: { // 0x18
         // Draw fixed "HELLO" hex string
         int x = 100;
         int y = 100;
@@ -591,30 +747,43 @@ display_deo(PMX *pmx, Uint8 addr) {
         drawHelloHex(x, y, s, c);
         break;
     }
-    case 0x19: {
+    
+    case DISPLAY_SPRINT_ADDR: { // 0x19
         // sprint: x,y,s,c,string (read from memory)
-        int x = PEEK(0x101);
-        int y = PEEK(0x102);
-        int s = PEEK(0x103);
-        int c = PEEK(0x104);
+        int x = PEEK(PARAM_Y);
+        int y = PEEK(PARAM_W);
+        int s = PEEK(PARAM_H);
+        int c = PEEK(PARAM_S);
         
-        // Read hex values from memory starting at 0x104
+        // Read hex values from memory starting at PARAM_X
         Uint8 hexString[1]; // Buffer for the hex values
-        hexString[1] = PEEK(0x100);
-        int stringAddr = 0x100;
-        int i = 1;
+        hexString[0] = PEEK(PARAM_X);
         
-        
-        drawHexString(hexString, i, x, y, s, c);
+        drawHexString(hexString, 1, x, y, s, c);
         break;
     }
+    
     default:
-        break;
+        // Unknown display operation
+        return;
     }
+    
+    // Always mark display for update after any operation
+    pmx_display.bool_update = 1;
 }
 
+/**
+ * @brief Draw a line on the display
+ *
+ * @param x1 The x-coordinate of the start point
+ * @param y1 The y-coordinate of the start point
+ * @param x2 The x-coordinate of the end point
+ * @param y2 The y-coordinate of the end point
+ * @param scale The scale factor of the line
+ * @param color The color of the line
+ */
 void
-drawLine(int x1, int y1, int x2, int y2, int s, int c) {
+drawLine(int x1, int y1, int x2, int y2, int scale, int color) {
     int dx = abs(x2 - x1);
     int dy = abs(y2 - y1);
     int sx = (x1 < x2) ? 1 : -1;
@@ -622,7 +791,7 @@ drawLine(int x1, int y1, int x2, int y2, int s, int c) {
     int err = dx - dy;
     
     while (1) {
-        drawPixel(x1, y1, s, c);
+        drawPixel(x1, y1, scale, color);
         
         if (x1 == x2 && y1 == y2) break;
         
