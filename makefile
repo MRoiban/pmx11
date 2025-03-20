@@ -22,6 +22,19 @@ OBJS = utils.o pmx.o console.o mouse.o file.o display.o pmx11.o
 # Default target
 all: $(EXE)
 
+# Build a specific PMX file
+# Usage: make build-pmx FILENAME=path/to/file.pmx
+build-pmx:
+	@if [ -z "$(FILENAME)" ]; then \
+		echo "Error: Please provide a PMX file using FILENAME=path/to/file.pmx"; \
+		exit 1; \
+	fi
+	@echo "Building $(FILENAME)..."
+	@mkdir -p ./build
+	$(PYTHON) -m pmxlang.main $(FILENAME)
+	make start
+	@echo "Build complete. Run with: $(EXE)"
+
 # Linking
 $(EXE): $(OBJS)
 	mkdir -p ./build
@@ -33,7 +46,11 @@ utils.o: ./src/utils.h ./src/utils.c
 
 # Compilation rules
 pmx.o: ./src/pmx.c ./src/pmx.h
-	$(CC) $(CFLAGS) -c ./src/pmx.c -o pmx.o
+	if [ "$(LOG_FLAG)" = "--log" ]; then \
+		$(CC) $(CFLAGS) -DLOG_ENABLED -c ./src/pmx.c -o pmx.o; \
+	else \
+		$(CC) $(CFLAGS) -c ./src/pmx.c -o pmx.o; \
+	fi
 
 display.o: ./src/devices/display.c ./src/devices/display.h
 	$(CC) $(CFLAGS) $(SDL) -c ./src/devices/display.c -o display.o
@@ -63,3 +80,5 @@ clean-all:
 
 clean-objects:
 	$(RM) $(OBJS)
+
+.PHONY: all build-pmx start clean-all clean-objects
