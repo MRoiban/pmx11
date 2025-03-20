@@ -1,0 +1,38 @@
+import("examples/color.pmx")
+screen_width = 200
+screen_height = 200
+screen(1, screen_width, screen_height, 0x000, 1)
+mouse(1)
+
+
+rect_color = red
+rect_x = 0
+rect_y = 0
+rect_w = 100
+rect_h = 100
+
+while True:
+    mouse_x = peek2(0x25)
+    mouse_y = peek2(0x26)
+    rect(rect_x, rect_y, rect_w, rect_h, 1, rect_color)
+    if rect_x < mouse_x:
+        if rect_y < mouse_y:
+            if rect_x + rect_w > mouse_x:
+                if rect_y + rect_h > mouse_y:
+                    rect_color = green
+                else:
+                    rect_color = red
+                end
+            else:
+                rect_color = red
+            end
+        else:
+            rect_color = red
+        end
+    else:
+        rect_color = red
+    end
+end
+
+
+

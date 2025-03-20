@@ -1,0 +1,19 @@
+screen(1)
+
+fushia = 255
+blue = 0x3A
+green = 100
+red = 0xFF0000
+
+
+rect(0,0,60,60,1,red)
+rect(0,60,60,60,1,green)
+rect(0,120,60,60,1,blue)
+rectfill(60,0,60,60,1,red)
+
+
+
+
+rect(305,0,54,800,1,red)
+rectfill(400,0,60,800,1,green)
+rectfill(500,0,60,800,1,blue)

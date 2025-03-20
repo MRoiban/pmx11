@@ -1,0 +1,15 @@
+screen(1, 100, 100, 0x000, 1)
+
+white = 0xFFFF
+
+x1 = 1
+y1 = 95
+x2 = 1
+y2 = 80
+
+
+
+line(x1, y1, x2, y2, 1, white)
+line(1,80,20,95,1,white)
+line(1,95,20,95,1,white)
+

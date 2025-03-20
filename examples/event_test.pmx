@@ -1,0 +1,59 @@
+# Event-driven test program for PMX11
+# This demonstrates how to use the new event-driven architecture
+
+# Turn on the display
+screen(1)
+
+# Define some colors
+RED = 0xFF0000
+GREEN = 0x00FF00
+BLUE = 0x0000FF
+WHITE = 0xFFFFFF
+BLACK = 0x000000
+
+# Set up display vector at 0x500
+# This will be called when display events occur
+POKE(0x500, DISPLAY_HANDLER)
+
+# Set up mouse vector at 0x510
+# This will be called when mouse events occur
+POKE(0x510, MOUSE_HANDLER)
+
+# Clear the screen
+rectfill(0, 0, 800, 600, 1, BLACK)
+
+# Draw initial screen
+rectfill(0, 0, 800, 50, 1, BLUE)
+rectfill(0, 550, 800, 50, 1, BLUE)
+
+# Main loop - just sleep to keep the program running
+while True:
+    PEEK(0) # No-op to keep the program running
+    
+# Display event handler
+label DISPLAY_HANDLER
+    # Draw a rectangle in the center
+    rectfill(300, 200, 200, 200, 1, GREEN)
+    # Return to the main program
+    return
+
+# Mouse event handler
+label MOUSE_HANDLER
+    # Get mouse coordinates and button state
+    x = PEEK(0x25)
+    y = PEEK(0x26)
+    buttons = PEEK(0x27)
+    
+    # Draw at mouse position
+    if buttons & 0x1:
+        # Left button - draw red
+        rectfill(x, y, 20, 20, 1, RED)
+    elif buttons & 0x2:
+        # Right button - draw green
+        rectfill(x, y, 20, 20, 1, GREEN)
+    else:
+        # No button - draw small blue dot
+        rectfill(x, y, 5, 5, 1, BLUE)
+    
+    # Return to the main program
+    return
