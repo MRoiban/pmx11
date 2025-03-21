@@ -2,8 +2,10 @@
 #ifndef PMX_H
 #define PMX_H
 
+
 #define KILOBYTE (1024 * 64)
-#define MEMORY_SIZE (10 * KILOBYTE) // 10 KB memory
+#define MEMORY_SIZE (20 * KILOBYTE) // 10 KB memory
+
 #define REGISTER_NUMBER (8)
 #define DISPLAY_SIZE (480000)
 #define DISPLAY_BLOCK (MEMORY_SIZE - DISPLAY_SIZE)
@@ -45,7 +47,7 @@ typedef struct {
     int step;
     int steps;
     int registers[REGISTER_NUMBER]; // R1, R2, R3, ...
-    int dev[0x100];
+    int dev[512];
     int time;
     int log_enabled; // Flag to enable/disable logging
 } PMX;

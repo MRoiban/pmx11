@@ -137,8 +137,8 @@ const AlphabetMapping alphabet_map[ALPHABET_NUMBER] = {
 
 #define COLORS 7
 const ColorMapping colors_map[COLORS] = {
-    {"WHITE", 0xfff}, {"BLACK", 0x000},  {"RED", 0xf00},    {"GREEN", 0x0f0},
-    {"BLUE", 0x00f},  {"YELLOW", 0xff0}, {"MAGENTA", 0xf0f}};
+    {"WHITE", 0xFFFFFF}, {"BLACK", 0x000000},  {"RED", 0xFF0000},    {"GREEN", 0x00FF00},
+    {"BLUE", 0x0000FF},  {"YELLOW", 0xFFFF00}, {"MAGENTA", 0xFF00FF}};
 
 PMXDisplay pmx_display = {
     .width = SCREEN_WIDTH,
@@ -165,6 +165,27 @@ updateDisplayBg(Uint32 bg) {
 }
 
 /**
+ * @brief Convert 24-bit RGB color (0xRRGGBB) to 12-bit RGB444 format for SDL
+ *
+ * @param color 24-bit RGB color value
+ * @return Uint16 12-bit RGB444 color value
+ */
+Uint16 convertRGBtoRGB444(Uint32 color) {
+    // Extract 8-bit RGB components
+    Uint8 r = (color >> 16) & 0xFF;
+    Uint8 g = (color >> 8) & 0xFF;
+    Uint8 b = color & 0xFF;
+    
+    // Convert 8-bit (0-255) to 4-bit (0-15)
+    Uint16 r4 = r >> 4;
+    Uint16 g4 = g >> 4;
+    Uint16 b4 = b >> 4;
+    
+    // Combine into RGB444 format (12-bit)
+    return (r4 << 8) | (g4 << 4) | b4;
+}
+
+/**
  * @brief Draw a pixel on the display
  *
  * @param x The x-coordinate of the pixel
@@ -177,8 +198,12 @@ void drawPixel(int x, int y, int scale, Uint32 color) {
     if (x < 0 || y < 0 || 
         x >= pmx_display.width || 
         y >= pmx_display.height) {
+        print("drawPixel: out of bounds");
         return;
     }
+    
+    // Convert 24-bit RGB to 12-bit RGB444
+    Uint16 rgb444 = convertRGBtoRGB444(color);
     
     for (int i = 0; i < scale; i++) {
         for (int j = 0; j < scale; j++) {
@@ -190,7 +215,7 @@ void drawPixel(int x, int y, int scale, Uint32 color) {
             if (screenX >= 0 && screenX < pmx_display.width && 
                 screenY >= 0 && screenY < pmx_display.height) {
                 int index = screenY * pmx_display.width + screenX;
-                pmx_display.pixels[index] = color;
+                pmx_display.pixels[index] = rgb444;
             }
         }
     }
@@ -207,15 +232,36 @@ void drawPixel(int x, int y, int scale, Uint32 color) {
  * @param c The color of the rectangle
  */
 void
-drawRect(int x, int y, int w, int h, int s, int c) {
+drawRectFill(int x, int y, int w, int h, int s, int c) {
     if (s <= 0)
         return;
+    
+    // Convert color to RGB444 format
+    Uint16 rgb444 = convertRGBtoRGB444(c);
     
     // Draw a filled rectangle by iterating through each pixel
     for (int i = 0; i < w; i++) {
         for (int j = 0; j < h; j++) {
             drawPixel(x + i, y + j, s, c);
         }
+    }
+}
+
+void 
+drawRect(int x, int y, int w, int h, int s, int c) {
+    if (s <= 0)
+        return;
+    
+    // Convert color to RGB444 format
+    Uint16 rgb444 = convertRGBtoRGB444(c);
+
+    for (int i = 0; i < w; i++) {
+        drawPixel(x + i, y, s, c);
+        drawPixel(x + i, y + h - 1, s, c);
+    }
+    for (int j = 0; j < h; j++) {
+        drawPixel(x, y + j, s, c);
+        drawPixel(x + w - 1, y + j, s, c);
     }
 }
 
@@ -442,10 +488,13 @@ initDisplay(int width, int height, Uint32 bg) {
         return;
     }
 
+    // Convert background color to RGB444 format
+    Uint16 bg_rgb444 = convertRGBtoRGB444(bg);
+
     // Initialize both buffers with the background color
     for (int i = 0; i < width * height; i++) {
-        pmx_display.pixels[i] = bg;
-        pmx_display.background[i] = bg;
+        pmx_display.pixels[i] = bg_rgb444;
+        pmx_display.background[i] = bg_rgb444;
     }
 
     // Create a window with the correct size and position
@@ -657,12 +706,10 @@ display_deo(PMX *pmx, Uint8 addr) {
             int background = PEEK2(0x1D);
             int borderless = PEEK2(0x1E);
             pmx_display.borderless = borderless;
-            printf("width:%d, height:%d, bg:%d, borderless:%d\n", width, height, background, borderless);
+            
             // Validate dimensions to avoid crashes
             if (width <= 0 || width > 1920) width = SCREEN_WIDTH;
             if (height <= 0 || height > 1080) height = SCREEN_HEIGHT;
-            
-            printf("Initializing display with width=%d, height=%d, bg=0x%x\n", width, height, background);
             
             initDisplay(width, height, background);
             pmx_display.power = 1;
@@ -684,57 +731,59 @@ display_deo(PMX *pmx, Uint8 addr) {
         int x = PEEK2(0x25);
         int y = PEEK2(0x26);
         drawBitmap(x / 2, y / 2, 0, cursor.width, cursor.bitmap, cursor.height,
-                   cursor.width, 2, 0xfff);
+                   cursor.width, 2, 0xffffff); // Use full white color which will be converted
         break;
     }
     
     case DISPLAY_PIXEL_ADDR: { // 0x14
         // pixel: x,y,s,c - directly read parameters from memory
-        int x = PEEK(PARAM_X);
-        int y = PEEK(PARAM_Y);
-        int s = PEEK(PARAM_W);  // Scale parameter at 0x102
-        int c = PEEK(PARAM_H);  // Color parameter at 0x103
+        int x = PEEK2(PARAM_X);
+        int y = PEEK2(PARAM_Y);
+        int s = PEEK2(PARAM_W);  // Scale parameter at 0x102
+        int c = PEEK2(PARAM_H);  // Color parameter at 0x103
         drawPixel(x, y, s, c);
         break;
     }
     
     case DISPLAY_LINE_ADDR: { // 0x15
         // line: x1,y1,x2,y2,s,c
-        int x1 = PEEK(PARAM_X);
-        int y1 = PEEK(PARAM_Y);
-        int x2 = PEEK(PARAM_W); // Reusing the W parameter for x2
-        int y2 = PEEK(PARAM_H); // Reusing the H parameter for y2
-        int s = PEEK(PARAM_S);
-        int c = PEEK(PARAM_C);
+        print("drawLine");
+        int x1 = PEEK2(PARAM_X);
+        int y1 = PEEK2(PARAM_Y);
+        int x2 = PEEK2(PARAM_W); // Reusing the W parameter for x2
+        int y2 = PEEK2(PARAM_H); // Reusing the H parameter for y2
+        int s = PEEK2(PARAM_S);
+        int c = PEEK2(PARAM_C);
         drawLine(x1, y1, x2, y2, s, c);
         break;
     }
     
     case DISPLAY_RECT_ADDR: { // 0x16
         // rectangle: x,y,w,h,s,c
-        int x = PEEK(PARAM_X);
-        int y = PEEK(PARAM_Y);
-        int w = PEEK(PARAM_W);
-        int h = PEEK(PARAM_H);
-        int s = PEEK(PARAM_S);
-        int c = PEEK(PARAM_C);
+        int x = PEEK2(PARAM_X);
+        int y = PEEK2(PARAM_Y);
+        int w = PEEK2(PARAM_W);
+        int h = PEEK2(PARAM_H);
+        int s = PEEK2(PARAM_S);
+        int c = PEEK2(PARAM_C);
         // Draw the rectangle outline
-        drawLine(x, y, x + w, y, s, c);         // top
-        drawLine(x, y, x, y + h, s, c);         // left
-        drawLine(x, y + h, x + w, y + h, s, c); // bottom
-        drawLine(x + w, y, x + w, y + h, s, c); // right
+        // drawLine(x, y, x + w, y, s, c);         // top
+        // drawLine(x, y, x, y + h, s, c);         // left
+        // drawLine(x, y + h, x + w, y + h, s, c); // bottom
+        // drawLine(x + w, y, x + w, y + h, s, c); // right
+        drawRect(x, y, w, h, s, c);
         break;
     }
     
     case DISPLAY_RECTFILL_ADDR: { // 0x17
         // rectangle fill: x,y,w,h,s,c
-        int x = PEEK(PARAM_X);    
-        int y = PEEK(PARAM_Y);
-        int w = PEEK(PARAM_W);
-        int h = PEEK(PARAM_H);
-        int s = PEEK(PARAM_S);
-        int c = PEEK(PARAM_C);
-        drawRect(x, y, w, h, s, c);
+        int x = PEEK2(PARAM_X);    
+        int y = PEEK2(PARAM_Y);
+        int w = PEEK2(PARAM_W);
+        int h = PEEK2(PARAM_H);
+        int s = PEEK2(PARAM_S);
+        int c = PEEK2(PARAM_C);
+        drawRectFill(x, y, w, h, s, c);
         break;
     }
     
@@ -750,14 +799,14 @@ display_deo(PMX *pmx, Uint8 addr) {
     
     case DISPLAY_SPRINT_ADDR: { // 0x19
         // sprint: x,y,s,c,string (read from memory)
-        int x = PEEK(PARAM_Y);
-        int y = PEEK(PARAM_W);
-        int s = PEEK(PARAM_H);
-        int c = PEEK(PARAM_S);
+        int x = PEEK2(PARAM_Y);
+        int y = PEEK2(PARAM_W);
+        int s = PEEK2(PARAM_H);
+        int c = PEEK2(PARAM_S);
         
         // Read hex values from memory starting at PARAM_X
         Uint8 hexString[1]; // Buffer for the hex values
-        hexString[0] = PEEK(PARAM_X);
+        hexString[0] = PEEK2(PARAM_X);
         
         drawHexString(hexString, 1, x, y, s, c);
         break;

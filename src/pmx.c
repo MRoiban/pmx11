@@ -82,8 +82,8 @@
 #define mul(pmx) WST[++SP] = WST[SP--] * WST[SP--];PC++
 #define div_pmx(pmx) WST[++SP] = WST[SP--] / WST[SP--];PC++
 #define ret(pmx) pmx->rst[++pmx->rp] = WST[SP--];PC++
-#define peek_stack(pmx, addr) WST[++SP]=PEEK(addr);PC++;PC++
-#define peek2_stack(pmx, addr) WST[++SP]=PEEK2(addr);PC++;PC++
+#define peek_stack(pmx, addr) WST[++SP]=PEEK(addr);PC+=2
+#define peek2_stack(pmx, addr) WST[++SP]=PEEK2(addr);PC+=2
 
 void
 init_pmx(PMX *pmx, VariableTable *table) {
@@ -285,8 +285,8 @@ typedef struct {
 } OpcodeMapping;
 
 
-//todo: add 0xae and 0xaf, up the opcode count and add it to the opcode_map  
-#define OPCODE_COUNT 32
+// Added 0xAE, 0xBE, 0xBF, 0xDF to the opcode map
+#define OPCODE_COUNT 38
 const OpcodeMapping opcode_map[OPCODE_COUNT] = {
     {0x00, "RET"},     {0x01, "LOAD R1"}, {0x02, "LOAD R2"}, {0x03, "LOAD R3"},
     {0x04, "LOAD R4"}, {0x05, "LOAD R5"}, {0x06, "LOAD R6"}, {0x07, "LOAD R7"},
@@ -294,10 +294,11 @@ const OpcodeMapping opcode_map[OPCODE_COUNT] = {
     {0x0C, "POP"},     {0x0D, "EQUAL"},   {0x0E, "GTH"},     {0x0F, "LTH"},
     {0x10, "DUP"},     {0x11, "POT"},     {0x12, "OVR"},     {0x13, "INC"},
     {0x14, "DCR"},     {0x15, "MUL"},     {0x16, "DIV"},     {0x17, "SQRT"},
-    {0x18, "POW"},     {0x19, "ABS"},     {0x20, "MOV"},     {0xAA, "STR"},
-    {0xAF, "DVO"},     {0xBF, "DVW"},     {0xCF, "SWAP"},    {0xDE, "GOTO"},
-    {0xDF, "JMP"},     {0xEE, "RMV"},     {0xEF, "JNZ"},     {0xFE, "RPC"},
-    {0xFF, "HALT"},
+    {0x18, "POW"},     {0x19, "ABS"},     {0x20, "MOV"},     {0x30, "AND"},
+    {0x31, "OR"},      {0x32, "XOR"},     {0x34, "NOT"},     {0xAA, "STR"},
+    {0xAE, "PEEK"},    {0xAF, "PEEK2"},   {0xBE, "POKE"},    {0xBF, "POKE2"},
+    {0xCF, "SWAP"},    {0xDE, "GOTO"},    {0xDF, "JMP"},     {0xEE, "RMV"},
+    {0xEF, "JNZ"},     {0xFE, "RPC"},     {0xFF, "HALT"},
 };
 
 const char *
@@ -354,143 +355,165 @@ dump(PMX *pmx, int opcode) {
 
 
 
-void
-run(PMX *pmx) {
-    int running = 1;
-    FILE *file = fopen("build/log.txt", "a");
-    if (file == NULL) {
-        // Handle file open error
-        perror("Error opening file");
-        return;
-    }
-    fclose(file);
+// void
+// run(PMX *pmx) {
+//     int running = 1;
+//     FILE *file = fopen("build/log.txt", "a");
+//     if (file == NULL) {
+//         // Handle file open error
+//         perror("Error opening file");
+//         return;
+//     }
+//     fclose(file);
 
-    while (running) {
-        int instruction = pmx->memory[PC];
-        // printf("%x\n",instruction);
-        switch (instruction) {
-        case 0x00:
-            running = halt(pmx, running);
-            break;
-        case 0x01:
-            load(pmx, 1, pmx->memory[PC + 1]);
-            break;
-        case 0x02:
-            load(pmx, 2, pmx->memory[PC + 1]);
-            break;
-        case 0x03:
-            load(pmx, 3, pmx->memory[PC + 1]);
-            break;
-        case 0x04:
-            load(pmx, 4, pmx->memory[PC + 1]);
-            break;
-        case 0x05:
-            load(pmx, 5, pmx->memory[PC + 1]);
-            break;
-        case 0x06:
-            load(pmx, 6, pmx->memory[PC + 1]);
-            break;
-        case 0x07:
-            load(pmx, 7, pmx->memory[PC + 1]);
-            break;
-        case 0x08:
-            load(pmx, 8, pmx->memory[PC + 1]);
-            break;
-        case 0x09:
-            add(pmx);
-            break;
-        case 0x0A:
-            sub(pmx);
-            break;
-        case 0x0B:
-            push(pmx, pmx->memory[PC + 1]);
-            break;
-        case 0x0C:
-            pop(pmx, pmx->memory[PC + 1]);
-            break;
-        case 0x0D:
-            equal(pmx);
-            break;
-        case 0x0F:
-            lower_than(pmx);
-            break;
-        case 0x10:
-            duplicate(pmx);
-            break;
-        case 0x11:
-            put_on_top_of_stack(pmx, pmx->memory[PC + 1]);
-            break;
-        case 0x12:
-            over(pmx);
-            break;
-        case 0x13:
-            increase(pmx);
-            break;
-        case 0x14:
-            decrease(pmx);
-            break;
-        case 0x20:
-            mov(pmx);
-            break;
-        case 0x24:
-            sqrt_instruction(pmx);
-            break;
-        case 0x25:
-            abs_instruction(pmx);
-            break;
-        case 0x23:
-            power(pmx);
-            break;
-        case 0xAA:
-            store(pmx);
-            break;
-        case 0xAE:
-            peek_stack(pmx, pmx->memory[PC + 1]);
-            break;
-        case 0xAF:
-            // console_deo(pmx, pmx->memory[PC + 1]);
-            peek2_stack(pmx, pmx->memory[PC + 1]);
-            break;
-        case 0xBE:
-            mem_write(pmx, pmx->memory[PC + 1]);
-            break;
-        case 0xBF:
-            dev_write(pmx, pmx->memory[PC + 1]);
-            break;
-        case 0xDE:
-            goto_instruction(pmx);
-            break;
-        case 0xDF:
-            jump(pmx, pmx->memory[PC + 1]);
-            break;
-        case 0xEE:
-            remove_top_of_stack(pmx);
-            break;
-        case 0xEF:
-            jump_if_not_zero(pmx);
-            break;
-        case 0xFE:
-            read_pc(pmx);
-            break;
-        case 0xFF:
-            ret(pmx);
-            break;
-        case 0x1CF:
-            swap(pmx);
-            break;
-        case 0x2CF:
-            swap(pmx);
-            break;
-        case 0x3CF:
-            swap(pmx);
-            break;
-        default:
-            running = 0;
-            break;
-        }
-        dump(pmx, instruction);
-    }
-}
+//     while (running) {
+//         int instruction = pmx->memory[PC];
+//         // printf("%x\n",instruction);
+//         switch (instruction) {
+//         case 0x00:
+//             running = halt(pmx, running);
+//             break;
+//         case 0x01:
+//             load(pmx, 1, pmx->memory[PC + 1]);
+//             break;
+//         case 0x02:
+//             load(pmx, 2, pmx->memory[PC + 1]);
+//             break;
+//         case 0x03:
+//             load(pmx, 3, pmx->memory[PC + 1]);
+//             break;
+//         case 0x04:
+//             load(pmx, 4, pmx->memory[PC + 1]);
+//             break;
+//         case 0x05:
+//             load(pmx, 5, pmx->memory[PC + 1]);
+//             break;
+//         case 0x06:
+//             load(pmx, 6, pmx->memory[PC + 1]);
+//             break;
+//         case 0x07:
+//             load(pmx, 7, pmx->memory[PC + 1]);
+//             break;
+//         case 0x08:
+//             load(pmx, 8, pmx->memory[PC + 1]);
+//             break;
+//         case 0x09:
+//             add(pmx);
+//             break;
+//         case 0x0A:
+//             sub(pmx);
+//             break;
+//         case 0x0B:
+//             push(pmx, pmx->memory[PC + 1]);
+//             break;
+//         case 0x0C:
+//             pop(pmx, pmx->memory[PC + 1]);
+//             break;
+//         case 0x0D:
+//             equal(pmx);
+//             break;
+//         case 0x0F:
+//             lower_than(pmx);
+//             break;
+//         case 0x10:
+//             duplicate(pmx);
+//             break;
+//         case 0x11:
+//             put_on_top_of_stack(pmx, pmx->memory[PC + 1]);
+//             break;
+//         case 0x12:
+//             over(pmx);
+//             break;
+//         case 0x13:
+//             increase(pmx);
+//             break;
+//         case 0x14:
+//             decrease(pmx);
+//             break;
+//         case 0x20:
+//             mov(pmx);
+//             break;
+//         case 0x24:
+//             sqrt_instruction(pmx);
+//             break;
+//         case 0x25:
+//             abs_instruction(pmx);
+//             break;
+//         case 0x23:
+//             power(pmx);
+//             break;
+//         case 0xAA:
+//             store(pmx);
+//             break;
+//         case 0xAE:
+//             peek_stack(pmx, pmx->memory[PC + 1]);
+//             break;
+//         case 0xAF:
+//             // console_deo(pmx, pmx->memory[PC + 1]);
+//             peek2_stack(pmx, pmx->memory[PC + 1]);
+//             break;
+//         case 0xBE:
+//             mem_write(pmx, pmx->memory[PC + 1]);
+//             break;
+//         case 0xBF:
+//             dev_write(pmx, pmx->memory[PC + 1]);
+//             break;
+//         case 0xDE:
+//             goto_instruction(pmx);
+//             break;
+//         case 0xDF:
+//             jump(pmx, pmx->memory[PC + 1]);
+//             break;
+//         case 0xEE:
+//             remove_top_of_stack(pmx);
+//             break;
+//         case 0xEF:
+//             jump_if_not_zero(pmx);
+//             break;
+//         case 0xFE:
+//             read_pc(pmx);
+//             break;
+//         case 0xFF:
+//             ret(pmx);
+//             break;
+//         case 0x1CF:
+//             swap(pmx);
+//             break;
+//         case 0x2CF:
+//             swap(pmx);
+//             break;
+//         case 0x3CF:
+//             swap(pmx);
+//             break;
+//         case 0x31:
+//             or(pmx);
+//             break;
+//         case 0x32:
+//             // XOR operation
+//             WST[++SP] = WST[SP--] ^ WST[SP--];
+//             PC++;
+//             break;
+//         case 0x34:
+//             not(pmx);
+//             break;
+//         default:
+//             // Check if the instruction is greater than 0xFF - these are likely
+//             // immediate values being incorrectly interpreted as opcodes
+//             if (instruction > 0xFF) {
+//                 fprintf(stderr, "Warning: Invalid opcode 0x%x at PC=%d - likely an immediate value\n", 
+//                         instruction, PC);
+//                 // Skip this value and continue to the next valid instruction
+//                 PC++;
+//             } else {
+//                 // Truly unknown instruction under 0xFF
+//                 fprintf(stderr, "Error: Unknown opcode 0x%x at PC=%d\n", instruction, PC);
+//                 running = 0;
+//             }
+//             break;
+//         }
+//         dump(pmx, instruction);
+//     }
+// }
 
 void
 step(PMX *pmx) {
@@ -505,7 +528,7 @@ step(PMX *pmx) {
 
     fclose(file);
     // if (pmx->step < pmx->steps) {
-        instruction = pmx->memory[PC];
+    instruction = pmx->memory[PC];
     //     pmx->step++;
     // } else {
     //     instruction = 0x00;
@@ -607,6 +630,11 @@ step(PMX *pmx) {
     case 0x31:
         or(pmx);
         break;
+    case 0x32:
+        // XOR operation
+        WST[++SP] = WST[SP--] ^ WST[SP--];
+        PC++;
+        break;
     case 0x34:
         not(pmx);
         break;
@@ -653,7 +681,17 @@ step(PMX *pmx) {
         swap(pmx);
         break;
     default:
-        running = 0;
+        // Check if the instruction is greater than 0xFF - these are likely
+        // immediate values being incorrectly interpreted as opcodes
+        if (instruction > 0xFF) {
+            fprintf(stderr, "Warning: Invalid opcode 0x%x at PC=%d - likely an immediate value\n", 
+                    instruction, PC);
+            // Skip this value and continue to the next valid instruction
+            PC++;
+        } else {
+            // Truly unknown instruction under 0xFF
+            fprintf(stderr, "Error: Unknown opcode 0x%x at PC=%d\n", instruction, PC);
+        }
         break;
     }
 #ifdef LOG_ENABLED
@@ -671,7 +709,7 @@ load_variables(VariableTable *table, const char *filename) {
         return;
     }
 
-    char line[256];
+    char line[MAX_LINE_LENGTH];
     int in_variables = 0;
 
     while (fgets(line, sizeof(line), file)) {
@@ -709,7 +747,7 @@ load_program_from_file(PMX *pmx, VariableTable *table, const char *filename) {
         fprintf(stderr, "Error: Could not open file %s\n", filename);
         return;
     }
-    char line[256];
+    char line[MAX_LINE_LENGTH];
     int in_variables = 0;
     int in_program = 0;
     int program_index = 0;

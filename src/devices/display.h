@@ -38,5 +38,7 @@ void
 drawLine(int x2, int x1, int y2, int y1, int s, int c);
 int
 char_to_hex(char character);
+Uint16
+convertRGBtoRGB444(Uint32 color);
 
 #endif
