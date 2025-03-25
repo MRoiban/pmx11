@@ -17,7 +17,8 @@ else
 endif
 
 # Object files
-OBJS = utils.o pmx.o console.o mouse.o file.o display.o pmx11.o
+OBJS = utils.o pmx.o console.o mouse.o file.o display.o pmx11.o window.o gui.o emu.o
+
 
 # Default target
 all: $(EXE)
@@ -66,6 +67,15 @@ file.o: ./src/devices/file.c ./src/devices/file.h
 
 pmx11.o: ./src/pmx11.c
 	$(CC) $(CFLAGS) $(SDL) -c ./src/pmx11.c -o pmx11.o
+
+window.o: ./src/extensions/window.c ./src/extensions/window.h
+	$(CC) $(CFLAGS) $(SDL) -c ./src/extensions/window.c -o window.o
+
+gui.o: ./src/extensions/gui.c ./src/extensions/gui.h
+	$(CC) $(CFLAGS) $(SDL) -c ./src/extensions/gui.c -o gui.o
+
+emu.o: ./src/emu.c ./src/emu.h
+	$(CC) $(CFLAGS) $(SDL) -c ./src/emu.c -o emu.o
 
 start:
 	clear
