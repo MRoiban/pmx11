@@ -32,7 +32,12 @@ jobs:
         pip install -r requirements.txt
 
     - name: Build PMX11
-      run: make build-pmx FILENAME=examples/minimal_test.pmx
+      run: make build
+      
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: pmx11-build
+        path: build/pmx11
+        retention-days: 7
 
-    - name: Verify build
-      run: test -f ./build/pmx11

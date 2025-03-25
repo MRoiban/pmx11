@@ -77,6 +77,12 @@ gui.o: ./src/extensions/gui.c ./src/extensions/gui.h
 emu.o: ./src/emu.c ./src/emu.h
 	$(CC) $(CFLAGS) $(SDL) -c ./src/emu.c -o emu.o
 
+build:
+	clear
+	make clean-all
+	make
+	make clean-objects
+
 start:
 	clear
 	make clean-all
