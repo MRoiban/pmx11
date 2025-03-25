@@ -1,0 +1,37 @@
+name: Build PMX11
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install SDL2
+      run: sudo apt-get install -y libsdl2-dev
+
+    - name: Install dependencies
+      run: |
+        python -m venv .venv
+        . .venv/bin/activate
+        pip install -r requirements.txt
+
+    - name: Build PMX11
+      run: make build-pmx FILENAME=examples/minimal_test.pmx
+
+    - name: Verify build
+      run: test -f ./build/pmx11
