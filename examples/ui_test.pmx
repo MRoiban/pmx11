@@ -1,16 +1,21 @@
 import("examples/color.pmx")
-width = 800
-height = 600
+width = 800;height = 600
 screen(1, width, height, white, 1)
 
+buttons_x = 10; buttons_y = 30
+button_width = 80; button_height = 20
+button(buttons_x, buttons_y, button_width, button_height, 0x3000, 10001, "Button 1")
+button(buttons_x, buttons_y + button_height + 10, button_width, button_height, 0x3000, 10002, "Button 2")
 
-rectfill(0,0,width,20,1,green)
-rect(0,0,400,300,2,black)
-rect(9,5,10,10,1,black)
-for i=0,i<4,i=i+1:
-    y = 6+i*2
-    line(22,y,350,y,1,black)
-    line(450,y,800,y,1,black)
-    line(0,y,5,y,1,black)
+while 1:
+   bID = peek2(0x5a);poke2(0x5a, 0)
+   if bID == 10001:
+      poke2(0x1D, 0xFF0000)
+      poke2(0x10, 1)
+      end
+   if bID == 10002:
+      poke2(0x1D, 0xFFFFFF)
+      poke2(0x10, 1)
+      end
 end
 

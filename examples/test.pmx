@@ -1,7 +1,7 @@
 import("examples/color.pmx")
 screen_width = 200
 screen_height = 200
-screen(1, screen_width, screen_height, 0x000, 1)
+screen(1, screen_width, screen_height, white, 1)
 mouse(1)
 
 
