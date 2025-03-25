@@ -78,7 +78,7 @@
 #define goto_instruction(pmx) WST[++SP] = PC + 1;swap(pmx);jump(pmx, WST[SP--])
 #define power(pmx) WST[++SP] = (int)pow(WST[SP--], WST[SP--]);PC++
 #define sqrt_instruction(pmx) WST[++SP] = (int)sqrt(WST[SP--]);PC++
-#define abs_instruction(pmx) WST[++SP] = abs(WST[SP--]);PC++
+#define abs_instruction(pmx) WST[++SP] = WST[SP--];PC++
 #define mul(pmx) WST[++SP] = WST[SP--] * WST[SP--];PC++
 #define div_pmx(pmx) WST[++SP] = WST[SP--] / WST[SP--];PC++
 #define ret(pmx) pmx->rst[++pmx->rp] = WST[SP--];PC++
@@ -125,7 +125,7 @@ void
 add_variable(VariableTable *table, const char *name, VariableType type,
              int location, int value) {
     if (table->count >= MAX_VARIABLES) {
-        printf(stderr, "Error: Maximum variable limit reached\n");
+        fprintf(stderr, "Error: Maximum variable limit reached\n");
         return;
     }
     Variable *var = &table->variables[table->count++];
@@ -221,6 +221,17 @@ jump_if_not_zero(PMX *pmx) {
     }
 }
 
+void
+jump_if_zero(PMX *pmx) {
+    int label = WST[SP--];
+    int condition = WST[SP--];
+    if (condition == 0) {
+        jump(pmx,label);
+    } else {
+        PC++;
+    }
+}
+
 
 
 
@@ -234,48 +245,28 @@ store(PMX *pmx) {
 }
 
 void
-mov(PMX *pmx) {
-    int flag1 = pmx->memory[++PC]; // Source type
-    int flag2 = pmx->memory[++PC]; // Destination type
-    int arg1 = pmx->memory[++PC];  // Source argument
-    int arg2 = pmx->memory[++PC];  // Destination argument
-    VariableTable *var_table = &pmx->table;
-    int value = 0;
-
-    // Resolve the source value
-    if (flag1 == 0) { // Source is a register
-        value = R[arg1 - 1];
-    } else if (flag1 == 1) { // Source is memory
-        value = pmx->memory[arg1];
-    } else if (flag1 == 2) { // Source is a variable
-        Variable *var = get_variable(var_table, (const char *)arg1);
-        if (var == NULL) {
-            fprintf(stderr, "Error: Variable not found\n");
-            return;
-        }
-        value = resolve_variable(pmx, var);
-    } else {
-        fprintf(stderr, "Error: Unknown source flag\n");
-        return;
+pmx_memmov(PMX *pmx) {
+    int src_addr = pmx->memory[++PC];
+    int dst_addr = pmx->memory[++PC];
+    int size = pmx->memory[++PC];
+    for (int i=0; i<size; i++) {
+        int value = PEEK(src_addr+i);
+        printf("memmov before: %x, %x, %d, %d\n", src_addr+i, dst_addr+i, value, PEEK(dst_addr+i));
+        PEEK(dst_addr+i)=PEEK(src_addr+i);
+        printf("memmov after: %x, %x, %d, %d\n", src_addr+i, dst_addr+i, value, PEEK(dst_addr+i));
+        PEEK(src_addr+i) = 0;
     }
-
-    // Assign the value to the destination
-    if (flag2 == 0) { // Destination is a register
-        R[arg2 - 1] = value;
-    } else if (flag2 == 1) { // Destination is memory
-        pmx->memory[arg2] = value;
-    } else if (flag2 == 2) { // Destination is a variable
-        Variable *var = get_variable(var_table, (const char *)arg2);
-        if (var == NULL) {
-            fprintf(stderr, "Error: Variable not found\n");
-            return;
-        }
-        set_variable(pmx, var, value);
-    } else {
-        fprintf(stderr, "Error: Unknown destination flag\n");
-        return;
+    PC++;
+}
+void
+pmx_memcpy(PMX *pmx) {
+    int src_addr = pmx->memory[++PC];
+    int dst_addr = pmx->memory[++PC];
+    int size = pmx->memory[++PC];
+    for (int i=0; i<size; i++) {
+        PEEK(dst_addr+i)=PEEK(src_addr+i);
+        printf("memcpy: %x, %x, %d\n", src_addr+i, dst_addr+i, PEEK(dst_addr+i));
     }
-
     PC++;
 }
 
@@ -298,7 +289,7 @@ const OpcodeMapping opcode_map[OPCODE_COUNT] = {
     {0x31, "OR"},      {0x32, "XOR"},     {0x34, "NOT"},     {0xAA, "STR"},
     {0xAE, "PEEK"},    {0xAF, "PEEK2"},   {0xBE, "POKE"},    {0xBF, "POKE2"},
     {0xCF, "SWAP"},    {0xDE, "GOTO"},    {0xDF, "JMP"},     {0xEE, "RMV"},
-    {0xEF, "JNZ"},     {0xFE, "RPC"},     {0xFF, "HALT"},
+    {0xEF, "JNZ"},     {0xFE, "RPC"},     {0xFF, "HALT"}
 };
 
 const char *
@@ -613,7 +604,10 @@ step(PMX *pmx) {
         abs_instruction(pmx);
         break;
     case 0x20:
-        mov(pmx);
+        pmx_memmov(pmx);
+        break;
+    case 0x21:
+        pmx_memcpy(pmx);
         break;
     case 0x24:
         sqrt_instruction(pmx);
@@ -664,6 +658,9 @@ step(PMX *pmx) {
         break;
     case 0xEF:
         jump_if_not_zero(pmx);
+        break;
+    case 0xF0:
+        jump_if_zero(pmx);
         break;
     case 0xFE:
         read_pc(pmx);

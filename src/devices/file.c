@@ -70,7 +70,9 @@ file_write(PMXFile *file, void *src, int len, Uint8 flags) {
 static Uint16
 file_read(PMXFile *file, void *dest, int len) {
     if (file->state != FILE_READ) {
-        if ((file->f = fopen("./build/z/"+(char)file->filename, "rb")) != NULL) {
+        char path[1024] = "./build/z/";
+        strcat(path, file->filename);
+        if ((file->f = fopen(path, "rb")) != NULL) {
             file->state = FILE_READ;
         }
     }

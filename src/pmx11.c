@@ -7,7 +7,10 @@
 #include "./devices/mouse.h"
 #include "./devices/console.h"
 #include "./devices/file.h"
+#include "./extensions/window.h"
+#include "./extensions/gui.h"
 #include "./pmx.h"
+#include "./emu.h"
 #include <SDL.h>
 #include <stdio.h>
 #include <time.h>
@@ -19,7 +22,7 @@
 #define FILE_VECTOR 0x530
 
 // Custom SDL events for device communication
-Uint32 display_event, mouse_event, keyboard_event, file_event;
+Uint32 display_event, mouse_event, keyboard_event, file_event, gui_event;
 
 // Event data structure to include device address
 typedef struct {
@@ -30,36 +33,7 @@ typedef struct {
 // The vectors are stored as little-endian 16-bit values
 #define GET_VECTOR(pmx, addr) (pmx->memory[addr] | (pmx->memory[addr + 1] << 8))
 
-/**
- * @brief Perform device-specific operations based on the given address.
- *
- * This function performs device-specific operations based on the given address.
- * It directly dispatches to the appropriate device handler based on the address range.
- *
- * @param pmx The PMX structure.
- * @param addr The address to perform operations on.
- */
-void
-emu_deo(PMX *pmx, Uint32 addr) {
-    Uint8 lv = (addr >> 4) & 0x0F;
 
-    switch (lv) {
-    case 0x00:
-        console_deo(pmx, addr);
-        break;
-    case 0x01:
-        display_deo(pmx, addr);
-        break;
-    case 0x02:
-        mouse_deo(pmx, addr);
-        break;
-    case 0x03:
-        file_deo(pmx, addr);
-        break;
-    default:
-        break;
-    }
-}
 
 /**
  * @brief Process device events and trigger appropriate vectors
@@ -208,6 +182,16 @@ void process_device_events(PMX *pmx, SDL_Event *e) {
         key_evt.user.code = 0;
         SDL_PushEvent(&key_evt);
     }
+    else if (e->type == gui_event) {
+        eventData = (PMXEventData*)e->user.data1;
+        if (eventData && eventData->deviceAddr) {
+            // Call device operation directly with the address
+            emu_deo(pmx, eventData->deviceAddr);
+            // Free the event data when done
+            free(eventData);
+            e->user.data1 = NULL;
+        }
+    }
 }
 
 /**
@@ -352,6 +336,20 @@ void handle_device_writes(PMX *pmx) {
         
         POKE2(0x17, 0);      // Reset the trigger
     }
+
+    if (PEEK2(0x50) == 1) {  // GUI drawing
+        // Push an event with the device address
+        SDL_Event event;
+        PMXEventData *eventData = malloc(sizeof(PMXEventData));
+        eventData->deviceAddr = 0x50;  // GUI address
+        
+        event.type = display_event;
+        event.user.data1 = eventData;
+        event.user.code = 0;
+        SDL_PushEvent(&event);
+        
+        POKE2(0x50, 0);      // Reset the trigger
+    }
 }
 
 /**
@@ -368,7 +366,6 @@ void
 emu_run(PMX *pmx) {
     SDL_Event e;
     int quit = 0;
-    
     // Register custom event types for device communication
     display_event = SDL_RegisterEvents(1);
     mouse_event = SDL_RegisterEvents(1);
@@ -388,6 +385,25 @@ emu_run(PMX *pmx) {
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) {
                 quit = 1;
+                // Dump memory to file in a readable format
+                FILE *file = fopen("build/memory.dump", "w");
+                if (file) {
+                    for (int i = 0; i < MEMORY_SIZE; i++) {
+                        // Print address at the start of each line
+                        if (i % 16 == 0) {
+                            if (i > 0) fprintf(file, "\n");
+                            fprintf(file, "0x%08x: ", i);
+                        }
+                        
+                        // Print value in hex format
+                        fprintf(file, "%08x ", pmx->memory[i]);
+                        
+                        // Add extra space in the middle of each line for readability
+                        if (i % 16 == 7) fprintf(file, " ");
+                    }
+                    fclose(file);
+                }
+                printf("Memory dumped to build/memory.dump\n");
             } else {
                 // Process device-specific events
                 process_device_events(pmx, &e);
@@ -404,7 +420,13 @@ emu_run(PMX *pmx) {
         Uint64 now = SDL_GetPerformanceCounter();
         if (now >= next_refresh) {
             if (pmx_display.power == 1) {
-                display_update();
+                // display_update();
+                if (!pmx_window.initialized) {
+                    printf("Display updated\n");
+                    create_window(&pmx_display, 0);
+                }
+                update_window();
+                update_gui(pmx);
             }
             next_refresh = now + frame_interval;
         }
@@ -432,19 +454,22 @@ main(int argc, char *args[]) {
     }
     fclose(file);
     
-    PMX pmx;
-    VariableTable variable_table;
-    init_variable_table(&variable_table);
-    init_pmx(&pmx, &variable_table);
-    init_mouse(600, 420);
-    
-    // Initialize SDL
+    // Initialize SDL first
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) < 0) {
         fprintf(stderr, "SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
         return 1;
     }
     
+    PMX pmx;
+    VariableTable variable_table;
+    init_variable_table(&variable_table);
+    init_pmx(&pmx, &variable_table);
+    init_gui();
     
+    // Initialize mouse after display
+    init_mouse(600, 420);
+    
+  
     // Run the emulator
     emu_run(&pmx);
     

@@ -23,7 +23,7 @@ PMXMouse pmx_mouse = {
 void init_mouse(int w, int h) {
     pmx_mouse.x = w/2;
     pmx_mouse.y = h/2;
-    SDL_ShowCursor(SDL_DISABLE);
+    SDL_ShowCursor(SDL_ENABLE);  // Show the system cursor
 }
 
 /**
@@ -70,6 +70,10 @@ void mouse_deo(PMX *pmx, Uint8 addr) {
         POKE2(MOUSE_X_ADDR, pmx_mouse.x);
         POKE2(MOUSE_Y_ADDR, pmx_mouse.y);
         POKE2(MOUSE_BUTTONS_ADDR, pmx_mouse.buttons);
+        if (pmx_mouse.last_state != pmx_mouse.buttons) {
+            POKE2(0x14, pmx_mouse.last_state);
+            pmx_mouse.last_state = pmx_mouse.buttons;
+        }
         POKE2(0x13, 1);
         break;
     // Additional mouse device operations can be added here

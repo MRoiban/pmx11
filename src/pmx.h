@@ -3,13 +3,6 @@
 #define PMX_H
 
 
-#define KILOBYTE (1024 * 64)
-#define MEMORY_SIZE (20 * KILOBYTE) // 10 KB memory
-
-#define REGISTER_NUMBER (8)
-#define DISPLAY_SIZE (480000)
-#define DISPLAY_BLOCK (MEMORY_SIZE - DISPLAY_SIZE)
-#define MAX_VARIABLES (256)
 
 #define POKE(i,j) pmx->memory[i] = j
 #define POKE2(i,j) pmx->dev[i] = j
@@ -78,7 +71,9 @@ console_deo(PMX *pmx, int addr);
 void
 store(PMX *pmx);
 void
-mov(PMX *pmx);
+pmx_memmov(PMX *pmx);
+void
+pmx_memcpy(PMX *pmx);
 void
 run(PMX *pmx);
 void

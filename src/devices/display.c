@@ -129,11 +129,12 @@ const AlphabetMapping alphabet_map[ALPHABET_NUMBER] = {
     {0x05, "E"}, {0x06, "F"}, {0x07, "G"}, {0x08, "H"}, {0x09, "I"},
     {0x0A, "J"}, {0x0B, "K"}, {0x0C, "L"}, {0x0D, "M"}, {0x0E, "N"},
     {0x0F, "O"}, {0x10, "P"}, {0x11, "Q"}, {0x12, "R"}, {0x13, "S"},
-    {0x14, "T"}, {0x15, "U"}, {0x17, "V"}, {0x18, "W"}, {0x19, "X"},
-    {0x1A, "Y"}, {0x1B, "Z"}, {0x1C, "1"}, {0x1D, "2"}, {0x1E, "3"},
-    {0x1F, "4"}, {0x20, "5"}, {0x21, "6"}, {0x22, "7"}, {0x23, "8"},
-    {0x24, "9"}, {0x25, "0"},
+    {0x14, "T"}, {0x15, "U"}, {0x16, "V"}, {0x17, "W"}, {0x18, "X"},
+    {0x19, "Y"}, {0x1A, "Z"}, {0x1B, "1"}, {0x1C, "2"}, {0x1D, "3"},
+    {0x1E, "4"}, {0x1F, "5"}, {0x20, "6"}, {0x21, "7"}, {0x22, "8"},
+    {0x23, "9"}, {0x24, "0"}, 
 };
+
 
 #define COLORS 7
 const ColorMapping colors_map[COLORS] = {
@@ -163,6 +164,24 @@ updateDisplayBg(Uint32 bg) {
     // This function is now redundant with our improved double buffering
     // Just keep it as a no-op for backward compatibility
 }
+
+char uppercase(char c) {
+    if (c >= 'a' && c <= 'z') {
+        return c - 32;
+    }
+    return c;
+}
+
+Uint8 *str_to_hex_array(char *str, Uint8 *array) {
+    for (int i = 0; i < strlen(str); i++) {
+        array[i] = char_to_hex(uppercase(str[i]));
+        // printf("str[%d]:%c turns to %x\n", i, str[i], array[i]);
+    }
+    return array;
+}
+
+
+
 
 /**
  * @brief Convert 24-bit RGB color (0xRRGGBB) to 12-bit RGB444 format for SDL
@@ -198,7 +217,7 @@ void drawPixel(int x, int y, int scale, Uint32 color) {
     if (x < 0 || y < 0 || 
         x >= pmx_display.width || 
         y >= pmx_display.height) {
-        print("drawPixel: out of bounds");
+        // print("drawPixel: out of bounds");
         return;
     }
     
@@ -251,6 +270,8 @@ void
 drawRect(int x, int y, int w, int h, int s, int c) {
     if (s <= 0)
         return;
+
+    // printf("drawRect: x=%d, y=%d, w=%d, h=%d, s=%d, c=%d\n", x, y, w, h, s, c);
     
     // Convert color to RGB444 format
     Uint16 rgb444 = convertRGBtoRGB444(c);
@@ -288,7 +309,7 @@ drawBitmap(int i, int j, int index, int width, const char *bitmap[], int rows,
         const char *row = bitmap[y];
         for (int x = startX; x < endX; x++) {
             if (row[x] == '1') {
-                drawPixel(y + j, x - startX + i, scale, color);
+                drawPixel(i + (x - startX), j + y, scale, color);
             }
         }
     }
@@ -338,38 +359,36 @@ getNumberIndex(char digit) {
  */
 void
 drawChar(Uint8 hex, int x, int y, int scale, Uint32 color) {
-    // Find the character that corresponds to this hex value
-    char character = '\0';
+    // Check if the hex value is valid
+    if (hex >= ALPHABET_NUMBER) {
+        printf("Unsupported hex value: 0x%02x\n", hex);
+        return;
+    }
+    
+    // Find the character index in our alphabet_map
     for (int i = 0; i < ALPHABET_NUMBER; i++) {
         if (alphabet_map[i].hex == hex) {
-            printf("char to print:%d", hex);
-            drawBitmap(x, y, hex, 5, alphabet.bitmap, alphabet.height,
-                      alphabet.width, scale, color);
-            break;
+            // Found the character
+            if (hex >= 0x01 && hex <= 0x1A) {
+                // It's a letter (A-Z)
+                drawBitmap(x, y, i, 5, alphabet.bitmap, alphabet.height,
+                          alphabet.width, scale, color);
+            } 
+            else if (hex >= 0x1B && hex <= 0x24) {
+                // It's a number (1-9, 0)
+                int numberIndex = hex - 0x1B; // Convert to 0-based index for numbers
+                drawBitmap(x, y, numberIndex, 5, numbers.bitmap, numbers.height,
+                          numbers.width, scale, color);
+            }
+            else if (hex == 0x00) {
+                // It's a space - nothing to draw
+            }
+            return; // Exit after drawing
         }
     }
-    // printf("char to print:%c",character);
-    // if (character == '\0') {
-    //     printf("Unsupported hex value: 0x%02x\n", hex);
-    //     return;
-    // }
     
-    // if (character >= 'A' && character <= 'Z') {
-    //     // Character is a letter (A-Z)
-    //     int index = getAlphabetIndex(character) + 1; // Convert to 0-based index
-    //     drawBitmap(x, y, index, 5, alphabet.bitmap, alphabet.height,
-    //                alphabet.width, scale, color);
-    // } else if (character >= '0' && character <= '9') {
-    //     // Character is a number (0-9)
-    //     int index = getNumberIndex(character); // Convert to 0-based index
-    //     drawBitmap(x, y, index, 5, numbers.bitmap, numbers.height,
-    //                numbers.width, scale, color);
-    // } else if (character == ' ') {
-    //     // Space character - nothing to draw
-    // } else {
-    //     // Invalid character
-    //     printf("Unsupported character: %c\n", character);
-    // }
+    // If we get here, the hex value wasn't found in the map
+    printf("Hex value 0x%02x not found in alphabet map\n", hex);
 }
 
 /**
@@ -682,7 +701,7 @@ drawHelloHex(int x, int y, int scale, Uint32 color) {
     // Hex values for "HELLO"
     Uint8 hello[] = {0x08, 0x05, 0x0C, 0x0C, 0x0F};
     int length = sizeof(hello) / sizeof(hello[0]);
-    printf("hex:%d\n", length);
+    // printf("hex:%d\n", length);
     for (int i = 0; i < length; i++) {
         drawChar(hello[i], x, y, scale, color);
         x += 6;
@@ -713,6 +732,26 @@ display_deo(PMX *pmx, Uint8 addr) {
             
             initDisplay(width, height, background);
             pmx_display.power = 1;
+        }
+        else {
+            int width = PEEK2(0x1B);
+            int height = PEEK2(0x1C);
+            int background = PEEK2(0x1D);
+            int borderless = PEEK2(0x1E);
+            pmx_display.borderless = borderless;
+            
+            // Validate dimensions to avoid crashes
+            if (width <= 0 || width > 1920) width = SCREEN_WIDTH;
+            if (height <= 0 || height > 1080) height = SCREEN_HEIGHT;
+            
+            // Convert background color to RGB444 format
+            Uint16 bg_rgb444 = convertRGBtoRGB444(background);
+
+            // Initialize both buffers with the background color
+            for (int i = 0; i < width * height; i++) {
+                pmx_display.pixels[i] = bg_rgb444;
+                pmx_display.background[i] = bg_rgb444;
+            }
         }
         break;
         
@@ -747,7 +786,6 @@ display_deo(PMX *pmx, Uint8 addr) {
     
     case DISPLAY_LINE_ADDR: { // 0x15
         // line: x1,y1,x2,y2,s,c
-        print("drawLine");
         int x1 = PEEK2(PARAM_X);
         int y1 = PEEK2(PARAM_Y);
         int x2 = PEEK2(PARAM_W); // Reusing the W parameter for x2

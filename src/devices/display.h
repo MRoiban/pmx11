@@ -36,9 +36,16 @@ void
 display_deo(PMX *pmx, Uint8 addr);
 void
 drawLine(int x2, int x1, int y2, int y1, int s, int c);
+void
+drawRect(int x, int y, int w, int h, int s, int c);
+void
+drawRectFill(int x, int y, int w, int h, int s, int c);
 int
 char_to_hex(char character);
 Uint16
 convertRGBtoRGB444(Uint32 color);
-
+void
+drawHexString(Uint8 hexString[], int length, int x, int y, int scale, Uint32 color);
+Uint8
+*str_to_hex_array(char *str, Uint8 *array);
 #endif

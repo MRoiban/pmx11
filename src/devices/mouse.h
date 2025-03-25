@@ -7,6 +7,7 @@
 typedef struct PMXMouse {
     int x, y;
     Uint8 buttons;
+    Uint8 last_state;
 } PMXMouse;
 
 extern PMXMouse pmx_mouse;
