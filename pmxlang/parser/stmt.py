@@ -105,12 +105,25 @@ class RectFill(Stmt):
 
 
 @dataclass
+class Button(Stmt):
+    type: int
+    x: Expr
+    y: Expr
+    w: Expr
+    h: Expr
+    function_addr: Expr
+    id: Expr
+    text: Expr
+
+    def accept(self, visitor: StmtVisitor) -> Any:
+        return visitor.visit_button_stmt(self)
+
+@dataclass
 class Circle(Stmt):
     body: List[Stmt]
 
     def accept(self, visitor: StmtVisitor) -> Any:
         return visitor.visit_circle_stmt(self)
-
 
 
 
@@ -176,3 +189,21 @@ class Break(Stmt):
     def accept(self, visitor: StmtVisitor) -> Any:
         return visitor.visit_break_stmt(self)
 
+
+@dataclass
+class Memcpy(Stmt):
+    src: Expr
+    dst: Expr
+    size: Expr
+
+    def accept(self, visitor: StmtVisitor) -> Any:
+        return visitor.visit_memcpy_stmt(self)
+
+@dataclass
+class Memmov(Stmt):
+    src: Expr
+    dst: Expr
+    size: Expr
+
+    def accept(self, visitor: StmtVisitor) -> Any:
+        return visitor.visit_memmov_stmt(self)

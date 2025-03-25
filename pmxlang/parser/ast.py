@@ -1,4 +1,4 @@
-from pmxlang.parser.expr import Expr, Binary, Grouping, Literal, Unary, Variable, Assign, Function, End, Peek, Peek2, Poke, Poke2
+from pmxlang.parser.expr import Expr, Binary, Grouping, Literal, Unary, Variable, Assign, Function, End, Peek, Poke, Poke2
 
 class AstPrinter:
     def print(self, expr: Expr) -> str:
@@ -32,9 +32,6 @@ class AstPrinter:
         
     def visit_peek_expr(self, expr: Peek) -> str:
         return f"(peek {expr.addr.accept(self)})"
-        
-    def visit_peek2_expr(self, expr: Peek2) -> str:
-        return f"(peek2 {expr.addr.accept(self)})"
         
     def visit_poke_expr(self, expr: Poke) -> str:
         return f"(poke {expr.addr.accept(self)} {expr.value.accept(self)})"

@@ -87,7 +87,6 @@ class Peek(Expr):
     def accept(self, visitor: ExprVisitor) -> Any:
         return visitor.visit_peek_expr(self)
 
-
 @dataclass
 class Peek2(Expr):
     addr: Expr

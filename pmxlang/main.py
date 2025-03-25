@@ -11,12 +11,12 @@ def run(source: str) -> None:
     parser = Parser(tokens)
     statements = parser.parse()
     
-    # Print AST for debugging (only for expressions, not all statements)
-    printer = AstPrinter()
-    print("Parsed", len(statements), "statements")
-    for stmt in statements:
-        if isinstance(stmt, Expression):
-            print("AST:", printer.print(stmt.expression))
+    # # Print AST for debugging (only for expressions, not all statements)
+    # printer = AstPrinter()
+    # print("Parsed", len(statements), "statements")
+    # for stmt in statements:
+    #     if isinstance(stmt, Expression):
+    #         print("AST:", printer.print(stmt.expression))
     
     # Stage 3: Compilation to PMX assembly
     compiler = PMXCompiler()

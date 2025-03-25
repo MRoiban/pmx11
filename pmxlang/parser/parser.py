@@ -8,7 +8,7 @@ from pmxlang.parser.expr import (
 from pmxlang.parser.stmt import (
     Stmt, Expression, For, Print, Screen, Cls, Line, 
     Rect, Circle, Pixel, RectFill, Sprint,
-    Function, If, Mouse, While, Break, Import
+    Function, If, Mouse, While, Break, Import, Memcpy, Memmov, Button, #"""Peek2"""    
 )
 
 
@@ -23,6 +23,7 @@ class Parser:
 
     # Statements
     def statement(self) -> Stmt:
+        print("here in statement")
         if self.match(TokenType.FOR):
             return self.for_statement()
         elif self.match(TokenType.IF):
@@ -47,12 +48,11 @@ class Parser:
             return self.sprint_statement()
         elif self.match(TokenType.POKE):
             return self.poke_statement()
-        elif self.match(TokenType.PEEK):
-            return self.peek_statement()
+        # elif self.match(TokenType.PEEK2):
+        #     print("here in peek2")
+        #     return self.peek2_statement()
         elif self.match(TokenType.POKE2):
             return self.poke2_statement()
-        elif self.match(TokenType.PEEK2):
-            return self.peek2_statement()
         elif self.match(TokenType.DEF):
             return self.function_statement()
         elif self.match(TokenType.END):
@@ -65,8 +65,60 @@ class Parser:
             return self.break_statement()
         elif self.match(TokenType.IMPORT):
             return self.import_statement()
+        elif self.match(TokenType.MEMCPY):
+            return self.memcpy_statement()
+        elif self.match(TokenType.MEMMOV):
+            return self.memmov_statement()
+        elif self.match(TokenType.BUTTON):
+            return self.button_statement()
         return self.expression_statement()
 
+    def peek2_statement(self) -> Stmt:
+        print("here in peek2")
+        self.consume(TokenType.LEFT_PAREN, "Expect '(' after peek2 call")
+        addr = self.expression()
+        self.consume(TokenType.RIGHT_PAREN, "Expect ')' after peek2 addr")
+        return Peek2(addr)
+
+    def button_statement(self) -> Stmt:
+        self.consume(TokenType.LEFT_PAREN, "Expect '(' after button call")
+        type = 0
+        x = self.expression()
+        self.consume(TokenType.COMMA, "Expect ',' after button x")
+        y = self.expression()
+        self.consume(TokenType.COMMA, "Expect ',' after button y")
+        w = self.expression()
+        self.consume(TokenType.COMMA, "Expect ',' after button width")
+        h = self.expression()
+        self.consume(TokenType.COMMA, "Expect ',' after button height")
+        function_addr = self.expression()
+        self.consume(TokenType.COMMA, "Expect ',' after button function address")
+        id = self.expression()
+        self.consume(TokenType.COMMA, "Expect ',' after button id")
+        text = self.expression()
+        self.consume(TokenType.RIGHT_PAREN, "Expect ')' after button text")
+        return Button(type, x, y, w, h, function_addr, id, text)
+
+    def memcpy_statement(self) -> Stmt:
+        self.consume(TokenType.LEFT_PAREN, "Expect '(' after memcpy call")
+        src = self.expression()
+        self.consume(TokenType.COMMA, "Expect ',' after memcpy src")
+        dst = self.expression()
+        self.consume(TokenType.COMMA, "Expect ',' after memcpy dst")
+        size = self.expression()
+        self.consume(TokenType.RIGHT_PAREN, "Expect ')' after memcpy body")
+        return Memcpy(src, dst, size)
+
+    def memmov_statement(self) -> Stmt:
+        self.consume(TokenType.LEFT_PAREN, "Expect '(' after memmov call")
+        src = self.expression()
+        self.consume(TokenType.COMMA, "Expect ',' after memmov src")
+        dst = self.expression()
+        self.consume(TokenType.COMMA, "Expect ',' after memmov dst")
+        size = self.expression()
+        self.consume(TokenType.RIGHT_PAREN, "Expect ')' after memmov body")
+        return Memmov(src, dst, size)
+        
 
     def function_statement(self) -> Stmt:
         name = self.consume(TokenType.IDENTIFIER, "Expect function name after 'def'")
@@ -108,13 +160,6 @@ class Parser:
         self.consume(TokenType.RIGHT_PAREN, "Expect ')' after poke2 value")
         from pmxlang.parser.expr import Poke2 as Poke2Expr
         return Expression(Poke2Expr(addr, value))
-
-    def peek2_statement(self) -> Stmt:
-        self.consume(TokenType.LEFT_PAREN, "Expect '(' after peek2 call")
-        addr = self.expression()    
-        self.consume(TokenType.RIGHT_PAREN, "Expect ')' after peek2 addr")
-        from pmxlang.parser.expr import Peek2 as Peek2Expr
-        return Expression(Peek2Expr(addr))
 
     def print_statement(self) -> Stmt:
         self.consume(TokenType.LEFT_PAREN, "Expect '(' after print call")
@@ -311,7 +356,6 @@ class Parser:
 
     def assignment(self) -> Expr:
         expr = self.equality()
-
         if self.match(TokenType.EQUAL):
             value = self.assignment()
 
@@ -411,11 +455,6 @@ class Parser:
             addr = self.expression()
             self.consume(TokenType.RIGHT_PAREN, "Expect ')' after peek addr")
             return Peek(addr)
-        if self.match(TokenType.PEEK2):
-            self.consume(TokenType.LEFT_PAREN, "Expect '(' after peek2 call")
-            addr = self.expression()
-            self.consume(TokenType.RIGHT_PAREN, "Expect ')' after peek2 addr")
-            return Peek2(addr)
         if self.match(TokenType.POKE):
             self.consume(TokenType.LEFT_PAREN, "Expect '(' after poke call")
             addr = self.expression()
@@ -436,6 +475,11 @@ class Parser:
             expr = self.expression()
             self.consume(TokenType.RIGHT_PAREN, "Expect closing ')'")
             return Grouping(expr)
+        if self.match(TokenType.PEEK2):
+            self.consume(TokenType.LEFT_PAREN, "Expect '(' after peek2 call")
+            addr = self.expression()
+            self.consume(TokenType.RIGHT_PAREN, "Expect ')' after peek2 addr")
+            return Peek2(addr)
         raise SyntaxError(f"Unexpected token {self.peek().lexeme}")
 
     def consume(self, type: TokenType, message: str) -> Token:

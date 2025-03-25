@@ -54,6 +54,10 @@ class TokenType(Enum):
     MOUSE = 49
     BREAK = 50
     IMPORT = 51
+    MEMCPY = 52
+    MEMMOV = 53
+    BUTTON = 54
+    
     
 
     def __add__(a, b):

@@ -11,7 +11,8 @@ from pmxlang.parser.expr import (
 from pmxlang.parser.stmt import (
     Stmt, Expression, For, Print, Screen, Cls, Line, 
     Rect, Circle, Pixel, RectFill, Sprint,
-    Function
+    Function, If, Mouse, While, Break, Import, Memcpy, Memmov, Button, 
+    Import, Memcpy, Memmov, Button
 )
 from pmxlang.parser.ast import AstPrinter
 from pmxlang.parser.parser import Parser 

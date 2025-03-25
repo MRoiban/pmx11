@@ -39,6 +39,9 @@ class Scanner:
         "mouse":TokenType.MOUSE,
         "break":TokenType.BREAK,
         "import":TokenType.IMPORT,
+        "memcpy":TokenType.MEMCPY,
+        "memmov":TokenType.MEMMOV,
+        "button":TokenType.BUTTON,
     }
 
     def scanTokens(self):
@@ -164,6 +167,8 @@ class Scanner:
                     # It's a regular number
                     self.current -= 1  # Go back to process as a normal digit
                     self.number()
+            case ";":
+                pass
             case _: 
                 if self.isDigit(char):
                     self.number()

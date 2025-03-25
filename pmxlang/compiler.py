@@ -14,7 +14,7 @@ from .parser.expr import (
     Poke,
     Peek,
     Poke2,
-    Peek2,
+    Peek2
 )
 from .parser.stmt import (
     Stmt,
@@ -38,9 +38,13 @@ from .parser.stmt import (
     If,
     While,
     Break,
+    Memcpy,
+    Memmov,
+    Button
 )
 from .lexer import TokenType, Token
 from .scanner import Scanner
+from .parser.utils import string_to_hex_list
 
 class PMXCompiler(ExprVisitor, StmtVisitor):
     def __init__(self):
@@ -73,6 +77,46 @@ class PMXCompiler(ExprVisitor, StmtVisitor):
         self.label_counter += 1
         return label
 
+    def visit_button_stmt(self, stmt: Button) -> None:
+        self.emit(f"POT {stmt.type}")
+        self.emit(f"POKE2 0x100")
+        x = stmt.x.accept(self)
+        self.emit(f"POKE2 0x101")
+        y = stmt.y.accept(self)
+        self.emit(f"POKE2 0x102")
+        w = stmt.w.accept(self)
+        self.emit(f"POKE2 0x103")
+        h = stmt.h.accept(self)
+        self.emit(f"POKE2 0x104")
+        function_addr = stmt.function_addr.accept(self)
+        self.emit(f"POKE2 0x105")
+        id = stmt.id.accept(self)
+        self.emit(f"POKE2 0x106")
+        order = 0x107
+        hex_list = string_to_hex_list(stmt.text.value)
+        size = len(hex_list)
+        self.emit(f"POT {size}")
+        self.emit(f"POKE2 0x{order:x}")
+        order += 1
+        for hex in hex_list:
+            self.emit(f"POT {hex}")
+            self.emit(f"POKE2 0x{order:x}")
+            order += 1
+        self.emit(f"POT 1")
+        self.emit(f"POKE2 0x50")
+
+    def visit_memcpy_stmt(self, stmt: Memcpy) -> None:
+        src = stmt.src.value
+        dest = stmt.dst.value
+        size = stmt.size.value
+        self.emit(f"CPY {src}, {dest}, {size}")
+
+    def visit_memmov_stmt(self, stmt: Memmov) -> None:
+        src = stmt.src.value
+        dest = stmt.dst.value
+        size = stmt.size.value
+        self.emit(f"MOV {src}, {dest}, {size}")
+
     def visit_break_stmt(self, stmt: Break) -> None:
         # Generate code for the break statement to exit the current loop
         if not self.loop_end_labels:
@@ -96,6 +140,7 @@ class PMXCompiler(ExprVisitor, StmtVisitor):
         # Evaluate condition
         self.need_push = False  # Result doesn't need to be on stack
         stmt.condition.accept(self)
+        self.emit(f"NOT")
 
         # Jump to end if condition is false (JNZ = Jump if Not Zero)
         self.emit(f"JNZ {end_label}")
@@ -133,6 +178,7 @@ class PMXCompiler(ExprVisitor, StmtVisitor):
         # Evaluate condition
         self.need_push = False  # Result doesn't need to be on stack
         stmt.condition.accept(self)
+        # self.emit(f"NOT")
 
         # Jump to else (or end if no else) if condition is false (JNZ = Jump if Not Zero)
         self.emit(f"JNZ {else_label}")
@@ -231,7 +277,7 @@ class PMXCompiler(ExprVisitor, StmtVisitor):
         self.emit(f"POKE2 0x17")
 
     def visit_poke_stmt(self, stmt):
-        stmt.value.accept(self)
+        self.emit(f"POT {stmt.value.value}")
         self.emit(f"POKE {stmt.addr.value}")
 
     def visit_function_expr(self, expr: Function) -> None:
@@ -246,11 +292,7 @@ class PMXCompiler(ExprVisitor, StmtVisitor):
         stmt.value.accept(self)
         self.emit(f"POKE {stmt.addr.value}")
 
-    def visit_peek_stmt(self, stmt):
-        self.emit(f"PEEK {stmt.addr.value}")
 
-    def visit_peek2_stmt(self, stmt):
-        self.emit(f"PEEK2 {stmt.addr.value}")
 
     def visit_sprint_stmt(self, stmt):
         stmt.string.accept(self)
@@ -318,6 +360,9 @@ class PMXCompiler(ExprVisitor, StmtVisitor):
 
         # Pop the label when we're done with this loop
         self.loop_end_labels.pop()
+
+    def visit_peek2_expr(self, expr: Peek2) -> None:
+        self.emit(f"PEEK2 {expr.addr.value}")
 
     def visit_binary_expr(self, expr: Binary) -> None:
         # Generate code for left operand - will push to stack
@@ -442,49 +487,12 @@ class PMXCompiler(ExprVisitor, StmtVisitor):
             # Restore previous push state
             self.need_push = old_push
     
-    def visit_peek2_expr(self, expr: Peek2) -> None:
-        # Check if the address is a literal value (direct addressing)
-        if isinstance(expr.addr, Literal):
-            # For literal addresses, we can use them directly with PEEK2
-            self.emit(f"PEEK2 {expr.addr.value}")
-            
-            # Save old push state and restore it at the end
-            old_push = self.need_push
-            
-            # If result needs to be on stack for a higher-level expression
-            if old_push:
-                self.emit("PUSH R1")
-                
-            # Restore previous push state
-            self.need_push = old_push
-        else:
-            # For computed addresses, we need to evaluate the expression first
-            old_push = self.need_push
-            self.need_push = False
-            expr.addr.accept(self)  # Address is now in R1
-            
-            # Need a temporary variable to store the computed address
-            temp_addr = "0x8000"  # Use a safe temporary address
-            
-            # Store the computed address in the temporary location
-            self.emit(f"POKE {temp_addr}")
-            
-            # Now peek2 the device memory at the address contained in our temp variable
-            self.emit(f"PEEK2 {temp_addr}")
-            
-            # If needed, push result to stack
-            if old_push:
-                self.emit("PUSH R1")
-            
-            # Restore previous push state
-            self.need_push = old_push
-    
+   
     def visit_poke_expr(self, expr: Poke) -> None:
         # Generate code for the value first
         old_push = self.need_push
         self.need_push = False
         expr.value.accept(self)  # Value in R1
-        self.emit("PUSH R1")  # Save value on stack
         
         # Check if the address is a literal value (direct addressing)
         if isinstance(expr.addr, Literal):
