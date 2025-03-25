@@ -5,9 +5,9 @@ Core functionality for the PMX assembler.
 from pmxlang.assembler.constants import assembly_to_opcode
 from pmxlang.assembler.output import replace_variables, write_rom_file
 from pmxlang.assembler.instructions import (
-    call_instruction, goto_instruction, import_instruction, jnz_instruction,
-    label_instruction, load_instruction, mov, swap_instruction, unary_instruction,
-    var_instruction, wchr_instruction, wstr_instruction
+    call_instruction, goto_instruction, import_instruction, jnz_instruction, jz_instruction,
+    label_instruction, load_instruction, memory_instruction, swap_instruction, unary_instruction,
+    var_instruction, wchr_instruction, wstr_instruction, alloc_instruction, free_instruction
 )
 
 
@@ -49,9 +49,9 @@ def parse_instructions(display_addr, program, variables, parts, instruction, pc=
         return program, variables
 
     if instruction in [
-        "LOAD", "MOV", "PUSH", "POP", "POKE", "POKE2", "POT",
+        "LOAD", "MOV", "CPY", "PUSH", "POP", "POKE", "POKE2", "POT",
         "PEEK", "PEEK2", "VAR", "LABEL", "CALL", "JMP", "JNZ",
-        "WCHR", "WSTR", "IMPORT"
+        "WCHR", "WSTR", "IMPORT", "ALLOC", "FREE"
     ]:
         if instruction == "LOAD":
             load_instruction(program, variables, parts, instruction)
@@ -61,6 +61,8 @@ def parse_instructions(display_addr, program, variables, parts, instruction, pc=
             call_instruction(program, parts)
         elif instruction == "JNZ":
             jnz_instruction(program, parts)
+        elif instruction == "JZ":
+            jz_instruction(program, parts)
         elif instruction == "IMPORT":
             variables = import_instruction(program, variables, parts)
         elif instruction == "LABEL":
@@ -71,8 +73,12 @@ def parse_instructions(display_addr, program, variables, parts, instruction, pc=
             display_addr = wstr_instruction(display_addr, program, parts)
         elif instruction in ["PUSH", "POP", "PEEK", "POKE", "POKE2", "POT", "PEEK2", "JMP"]:
             unary_instruction(program, variables, parts, instruction)
-        elif instruction == "MOV":
-            mov(program, parts, instruction, variables)
+        elif instruction in ["MOV", "CPY"]:
+            memory_instruction(program, parts, instruction, variables)
+        elif instruction == "ALLOC":
+            alloc_instruction(program, parts, instruction, variables)
+        elif instruction == "FREE":
+            free_instruction(program, parts, instruction, variables)
     else:
         if instruction in assembly_to_opcode:
             program.append(assembly_to_opcode[instruction])

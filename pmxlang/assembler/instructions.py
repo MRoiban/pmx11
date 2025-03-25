@@ -6,6 +6,20 @@ from pmxlang.assembler.constants import assembly_to_opcode, char_to_hex
 from pmxlang.assembler.utils import parse_arithmetic_expression
 
 
+def alloc_instruction(program, parts, instruction, variables):
+    """Process ALLOC instruction."""
+    size = parse_arithmetic_expression(parts[1], variables)
+    program.append(assembly_to_opcode[instruction])
+    program.append(str(size))
+
+
+def free_instruction(program, parts, instruction, variables):
+    """Process FREE instruction."""
+    addr = parse_arithmetic_expression(parts[1], variables)
+    program.append(assembly_to_opcode[instruction])
+    program.append(str(addr))
+
+
 def swap_instruction(program, parts, instruction):
     """Process SWAP instruction."""
     reg1 = parts[1].replace("R", "")
@@ -137,6 +151,14 @@ def jnz_instruction(program, parts):
     program.append("0xEF")  # JNZ
 
 
+def jz_instruction(program, parts):
+    """Process JZ instruction for conditional jumps."""
+    reg = parts[1]
+    program.append("0x11")  # POT
+    program.append(reg) 
+    program.append("0xF0")  # JZ
+
+
 def var_instruction(variables, parts):
     """
     Parse the VAR instruction to define variables.
@@ -175,23 +197,10 @@ def load_instruction(program, variables, parts, instruction):
     program.append(str(operand))
 
 
-def mov(program, parts, instruction, variables):
+def memory_instruction(program, parts, instruction, variables):
     """Process MOV instruction to move data between registers or memory."""
     opcode = assembly_to_opcode[instruction]
-    
-    def parse_operand(op, allow_immediate=True):
-        if op in variables:
-            value = variables[op].get("location") or variables[op]["value"]
-            return 2, value
-        elif op.startswith("R"):
-            return 0, op.replace("R", "")
-        elif op.startswith("@"):
-            return 1, op.replace("@", "")
-        elif op.startswith("#") and allow_immediate:
-            return 3, int(op.replace("#", ""))
-        raise ValueError(f"Invalid operand: {op}")
-
-    src_flag, src_value = parse_operand(parts[1])
-    dest_flag, dest_value = parse_operand(parts[2], allow_immediate=False)
-    
-    program.extend([opcode, src_flag, dest_flag, src_value, dest_value]) 
+    src_addr = parse_arithmetic_expression(parts[1], variables)
+    dst_addr = parse_arithmetic_expression(parts[2], variables)
+    size = parse_arithmetic_expression(parts[3], variables)
+    program.extend([opcode, src_addr, dst_addr, size]) 

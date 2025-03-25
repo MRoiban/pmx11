@@ -33,6 +33,7 @@ assembly_to_opcode = {
     "POW": "0x18",
     "ABS": "0x19",
     "MOV": "0x20",
+    "CPY": "0x21",
     "AND": "0x30",
     "OR": "0x31",
     "NOT": "0x34",
@@ -48,6 +49,8 @@ assembly_to_opcode = {
     "RMV": "0xEE",
     "RPC": "0xFE",
     "RET": "0xFF",
+    "ALLOC": "0x21",
+    "FREE": "0x22",
 }
 
 # Mapping of characters to hex codes for display
