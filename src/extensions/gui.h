@@ -19,6 +19,7 @@ typedef struct {
     int function_addr;
     int id;
     hexString string;
+    int dirty;
     enum InteractableType type;
 } Interactable;
 

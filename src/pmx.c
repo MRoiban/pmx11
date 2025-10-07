@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "core/stack.h"
 
 #define WST pmx->wst
 #define PC pmx->pc
@@ -73,16 +74,16 @@
 #define greater_than(pmx) WST[++SP] = (WST[SP--] > WST[SP--]) ? 0 : 1;PC++
 #define lower_than(pmx) WST[++SP] = (WST[SP--] < WST[SP--]) ? 0 : 1;PC++
 // #define swap(pmx) {int reg1 = WST[SP--];int reg2 = WST[SP--];int temp = R[reg1 - 1];R[reg1 - 1] = R[reg2 - 1];R[reg2 - 1] = temp;PC += 3;}
-#define swap(pmx) {int a = WST[SP--]; int b = WST[SP--];WST[++SP]=a;WST[++SP]=b;PC++;}
+// #define swap(pmx) {int a = WST[SP--]; int b = WST[SP--];WST[++SP]=a;WST[++SP]=b;PC++;}
 #define put_on_top_of_stack(pmx, value) WST[++SP] = value;PC += 2
-#define goto_instruction(pmx) WST[++SP] = PC + 1;swap(pmx);jump(pmx, WST[SP--])
+#define goto_instruction(pmx) WST[++SP] = PC + 1;stack_swap(pmx);jump(pmx, WST[SP--])
 #define power(pmx) WST[++SP] = (int)pow(WST[SP--], WST[SP--]);PC++
 #define sqrt_instruction(pmx) WST[++SP] = (int)sqrt(WST[SP--]);PC++
 #define abs_instruction(pmx) WST[++SP] = WST[SP--];PC++
 #define mul(pmx) WST[++SP] = WST[SP--] * WST[SP--];PC++
 #define div_pmx(pmx) WST[++SP] = WST[SP--] / WST[SP--];PC++
 #define ret(pmx) pmx->rst[++pmx->rp] = WST[SP--];PC++
-#define peek_stack(pmx, addr) WST[++SP]=PEEK(addr);PC+=2
+// #define peek_stack(pmx, addr) WST[++SP]=PEEK(addr);PC+=2
 #define peek2_stack(pmx, addr) WST[++SP]=PEEK2(addr);PC+=2
 
 void
@@ -205,8 +206,9 @@ unload_program(PMX *pmx) {
 
 int
 halt(PMX *pmx, int running) {
-    unload_program(pmx);
-    return 0;
+    // unload_program(pmx);
+    PC++;
+    return 1;
 }
 
 
@@ -510,14 +512,14 @@ void
 step(PMX *pmx) {
     int running = 1;
     int instruction;
-    FILE *file = fopen("build/log.txt", "a");
-    if (file == NULL) {
-        // Handle file open error
-        perror("Error opening file");
-        return;
-    }
+    // FILE *file = fopen("build/log.txt", "a");
+    // if (file == NULL) {
+    //     // Handle file open error
+    //     perror("Error opening file");
+    //     return;
+    // }
 
-    fclose(file);
+    // fclose(file);
     // if (pmx->step < pmx->steps) {
     instruction = pmx->memory[PC];
     //     pmx->step++;
@@ -559,10 +561,12 @@ step(PMX *pmx) {
         sub(pmx);
         break;
     case 0x0B:
-        push(pmx, pmx->memory[PC + 1]);
+        // push(pmx, pmx->memory[PC + 1]);
+        stack_push(pmx, pmx->memory[PC + 1]);
         break;
     case 0x0C:
-        pop(pmx, pmx->memory[PC + 1]);
+        // pop(pmx, pmx->memory[PC + 1]);
+        stack_pop(pmx,pmx->memory[PC + 1]);
         break;
     case 0x0D:
         equal(pmx);
@@ -636,7 +640,8 @@ step(PMX *pmx) {
         store(pmx);
         break;
     case 0xAE:
-        peek_stack(pmx, pmx->memory[PC + 1]);
+        // peek_stack(pmx, pmx->memory[PC + 1]);
+        stack_peek(pmx, pmx->memory[PC + 1]);
         break;
     case 0xAF:
         peek2_stack(pmx, pmx->memory[PC + 1]);
@@ -669,13 +674,13 @@ step(PMX *pmx) {
         ret(pmx);
         break;
     case 0xCF:
-        swap(pmx);
+        stack_swap(pmx);
         break;
     case 0x2CF:
-        swap(pmx);
+        stack_swap(pmx);
         break;
     case 0x3CF:
-        swap(pmx);
+        stack_swap(pmx);
         break;
     default:
         // Check if the instruction is greater than 0xFF - these are likely
@@ -696,7 +701,7 @@ step(PMX *pmx) {
 #endif
 }
 
-#define MAX_LINE_LENGTH 20000
+#define MAX_LINE_LENGTH 2000000
 
 void
 load_variables(VariableTable *table, const char *filename) {

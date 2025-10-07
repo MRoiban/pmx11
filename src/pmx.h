@@ -31,18 +31,18 @@ typedef struct {
 
 typedef struct {
     unsigned int *memory;
-    unsigned int *wst; // Stack
-    unsigned int *rst; // Stack
+    unsigned int *wst;
+    unsigned int *rst;
     VariableTable* table;
     int sp;
     int rp;
     int pc;
     int step;
     int steps;
-    int registers[REGISTER_NUMBER]; // R1, R2, R3, ...
+    int registers[REGISTER_NUMBER];
     int dev[512];
     int time;
-    int log_enabled; // Flag to enable/disable logging
+    int log_enabled;
 } PMX;
 
 void
@@ -83,4 +83,4 @@ load_program_from_file(PMX *pmx, VariableTable *table, const char *filename);
 void
 load_variables(VariableTable *table, const char *filename);
 
-#endif // PMX_H
+#endif

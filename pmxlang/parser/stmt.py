@@ -19,6 +19,9 @@ class Expression(Stmt):
         return visitor.visit_expression_stmt(self)
 
 
+
+
+
 @dataclass
 class For(Stmt):
     init: Expr
@@ -117,6 +120,26 @@ class Button(Stmt):
 
     def accept(self, visitor: StmtVisitor) -> Any:
         return visitor.visit_button_stmt(self)
+    
+@dataclass
+class Label(Stmt):
+    type: int
+    text: Token
+    x: Expr
+    y: Expr
+    scale: Expr
+    color: Expr
+    id: Expr
+
+    def accept(self, visitor: StmtVisitor) -> Any:
+        return visitor.visit_label_stmt(self)
+
+@dataclass
+class ChangeLabelText(Stmt):
+    id: Expr
+    text: Expr  
+    def accept(self, visitor: StmtVisitor) -> Any:
+        return visitor.visit_change_label_text_stmt(self)
 
 @dataclass
 class Circle(Stmt):

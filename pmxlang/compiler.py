@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Dict
+from typing import Any, List, Dict
 from .parser.parser import Parser
 from .parser.expr import (
     Expr,
@@ -40,7 +40,9 @@ from .parser.stmt import (
     Break,
     Memcpy,
     Memmov,
-    Button
+    Button,
+    Label,
+    ChangeLabelText
 )
 from .lexer import TokenType, Token
 from .scanner import Scanner
@@ -77,6 +79,27 @@ class PMXCompiler(ExprVisitor, StmtVisitor):
         self.label_counter += 1
         return label
 
+    def visit_change_label_text_stmt(self, stmt: ChangeLabelText) -> None:
+        stmt.id.accept(self)
+        self.emit(f"POKE2 0x100")
+        
+        if isinstance(stmt.text, Variable):
+            print(stmt.text.name.lexeme)
+            hex_list = string_to_hex_list(stmt.text.name.lexeme)
+        else:
+            print(stmt.text)
+            hex_list = string_to_hex_list(stmt.text.value)
+        size = len(hex_list)
+        self.emit(f"POT {size}")
+        self.emit(f"POKE2 0x101")
+        order = 0x102
+        for hex in hex_list:
+            self.emit(f"POT {hex}")
+            self.emit(f"POKE2 0x{order:x}")
+            order += 1
+        self.emit(f"POT 1")
+        self.emit(f"POKE2 0x53")
+
     def visit_button_stmt(self, stmt: Button) -> None:
         self.emit(f"POT {stmt.type}")
         self.emit(f"POKE2 0x100")
@@ -90,6 +113,28 @@ class PMXCompiler(ExprVisitor, StmtVisitor):
         self.emit(f"POKE2 0x104")
         function_addr = stmt.function_addr.accept(self)
         self.emit(f"POKE2 0x105")
+        id = stmt.id.accept(self)
+        self.emit(f"POKE2 0x106")
+        order = 0x107
+        hex_list = string_to_hex_list(stmt.text.value)
+        size = len(hex_list)
+        self.emit(f"POT {size}")
+        self.emit(f"POKE2 0x{order:x}")
+        order += 1
+        for hex in hex_list:
+            self.emit(f"POT {hex}")
+            self.emit(f"POKE2 0x{order:x}")
+            order += 1
+        self.emit(f"POT 1")
+        self.emit(f"POKE2 0x50")
+
+    def visit_label_stmt(self, stmt: Label) -> None:
+        self.emit(f"POT {stmt.type}")
+        self.emit(f"POKE2 0x100")
+        x = stmt.x.accept(self)
+        self.emit(f"POKE2 0x101")
+        y = stmt.y.accept(self)
+        self.emit(f"POKE2 0x102")
         id = stmt.id.accept(self)
         self.emit(f"POKE2 0x106")
         order = 0x107

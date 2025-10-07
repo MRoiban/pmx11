@@ -42,7 +42,10 @@ class Scanner:
         "memcpy":TokenType.MEMCPY,
         "memmov":TokenType.MEMMOV,
         "button":TokenType.BUTTON,
-    }
+        "label":TokenType.LABEL,
+        "changeLabelText":TokenType.CHANGE_LABEL_TEXT,
+        "str":TokenType.STR,
+    }   
 
     def scanTokens(self):
         while not self.isAtEnd():

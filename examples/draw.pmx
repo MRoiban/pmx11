@@ -1,0 +1,81 @@
+import("examples/color.pmx")
+
+scale = 10
+width = 110*scale;height = 180*scale
+screen(1, width, height, white, 1)
+
+old_x = 0
+old_y = 0
+has_old = 0
+
+while 1:
+    mx = peek2(0x25)
+    my = peek2(0x26)
+    click = peek2(0x27)
+
+    if click == 1:
+        if has_old == 0:
+            old_x = mx
+            old_y = my
+            has_old = 1
+        end
+
+        x0 = old_x
+        y0 = old_y
+        x1 = mx
+        y1 = my
+
+        ady = y1 - y0
+        if ady < 0:
+            ady = -ady
+        end
+
+        adx = x1 - x0
+        if adx < 0:
+            adx = -adx
+        end
+
+        steep = (ady > adx)
+        if steep:
+            t = x0; x0 = y0; y0 = t
+            t = x1; x1 = y1; y1 = t
+        end
+
+        if x0 > x1:
+            t = x0; x0 = x1; x1 = t
+            t = y0; y0 = y1; y1 = t
+        end
+
+        dx = x1 - x0
+        dy = y1 - y0
+        if dy < 0:
+            yi = -1
+            dy = -dy
+        else:
+            yi = 1
+        end
+
+        D = (2 * dy) - dx
+        y = y0
+
+        for x = x0, x <= x1, x = x + 1:
+            if steep:
+                rect(y, x, 1, 1, 1, red)
+            else:
+                rect(x, y, 1, 1, 1, red)
+            end
+
+            if D > 0:
+                y = y + yi
+                D = D - (2 * dx)
+            end
+            D = D + (2 * dy)
+        end
+
+        old_x = mx
+        old_y = my
+
+    else:
+        has_old = 0
+    end
+end

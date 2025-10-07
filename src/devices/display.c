@@ -155,6 +155,42 @@ static SDL_Texture *texture = NULL;
 static SDL_Surface *screenSurface = NULL;
 
 /**
+ * @brief Get the SDL window pointer
+ * 
+ * @return The SDL window pointer or NULL if not initialized
+ */
+SDL_Window *get_sdl_window() {
+    return window;
+}
+
+/**
+ * @brief Set the window position
+ * 
+ * @param x The x-coordinate
+ * @param y The y-coordinate
+ */
+void set_window_position(int x, int y) {
+    if (window != NULL) {
+        SDL_SetWindowPosition(window, x, y);
+    }
+}
+
+/**
+ * @brief Get the window position
+ * 
+ * @param x Pointer to store the x-coordinate
+ * @param y Pointer to store the y-coordinate
+ */
+void get_window_position(int *x, int *y) {
+    if (window != NULL) {
+        SDL_GetWindowPosition(window, x, y);
+    } else {
+        *x = 0;
+        *y = 0;
+    }
+}
+
+/**
  * @brief Update the display background
  *
  * @param bg Background color
@@ -217,7 +253,7 @@ void drawPixel(int x, int y, int scale, Uint32 color) {
     if (x < 0 || y < 0 || 
         x >= pmx_display.width || 
         y >= pmx_display.height) {
-        // print("drawPixel: out of bounds");
+        print("drawPixel: out of bounds");
         return;
     }
     
@@ -255,9 +291,6 @@ drawRectFill(int x, int y, int w, int h, int s, int c) {
     if (s <= 0)
         return;
     
-    // Convert color to RGB444 format
-    Uint16 rgb444 = convertRGBtoRGB444(c);
-    
     // Draw a filled rectangle by iterating through each pixel
     for (int i = 0; i < w; i++) {
         for (int j = 0; j < h; j++) {
@@ -272,9 +305,7 @@ drawRect(int x, int y, int w, int h, int s, int c) {
         return;
 
     // printf("drawRect: x=%d, y=%d, w=%d, h=%d, s=%d, c=%d\n", x, y, w, h, s, c);
-    
-    // Convert color to RGB444 format
-    Uint16 rgb444 = convertRGBtoRGB444(c);
+  
 
     for (int i = 0; i < w; i++) {
         drawPixel(x + i, y, s, c);
@@ -770,7 +801,7 @@ display_deo(PMX *pmx, Uint8 addr) {
         int x = PEEK2(0x25);
         int y = PEEK2(0x26);
         drawBitmap(x / 2, y / 2, 0, cursor.width, cursor.bitmap, cursor.height,
-                   cursor.width, 2, 0xffffff); // Use full white color which will be converted
+                   cursor.width, 2, 0x000000); // Use full white color which will be converted
         break;
     }
     

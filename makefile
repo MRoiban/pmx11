@@ -17,7 +17,7 @@ else
 endif
 
 # Object files
-OBJS = utils.o pmx.o console.o mouse.o file.o display.o pmx11.o window.o gui.o emu.o
+OBJS = utils.o pmx.o console.o mouse.o file.o display.o pmx11.o window.o gui.o emu.o stack.o
 
 
 # Default target
@@ -41,6 +41,10 @@ $(EXE): $(OBJS)
 	mkdir -p ./build
 	$(PYTHON) ./pmxAssembler.py
 	$(CC) $(OBJS) $(SDL) $(LDFLAGS) -o $(EXE)
+
+stack.o: ./src/core/stack.c ./src/core/stack.h ./src/pmx.h ./src/utils.h
+	$(CC) $(CFLAGS) -c ./src/core/stack.c -o stack.o
+
 
 utils.o: ./src/utils.h ./src/utils.c
 	$(CC) $(CFLAGS) -c ./src/utils.c -o utils.o
@@ -85,7 +89,7 @@ build:
 start:
 	clear
 	make clean-all
-	make
+	make all
 	make clean-objects
 	./build/pmx11
 

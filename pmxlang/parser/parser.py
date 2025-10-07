@@ -3,12 +3,13 @@ from typing import List
 from pmxlang.lexer import Token, TokenType
 from pmxlang.parser.expr import (
     Expr, Binary, End, Grouping, 
-    Literal, Unary, Variable, Assign, Poke, Peek, Poke2, Peek2
+    Literal, Unary, Variable, Assign, Poke, Peek, Poke2, Peek2, Str
 )
 from pmxlang.parser.stmt import (
     Stmt, Expression, For, Print, Screen, Cls, Line, 
     Rect, Circle, Pixel, RectFill, Sprint,
-    Function, If, Mouse, While, Break, Import, Memcpy, Memmov, Button, #"""Peek2"""    
+    Function, If, Mouse, While, Break, Import, Memcpy, Memmov, Button, #"""Peek2"""       
+    Label, ChangeLabelText
 )
 
 
@@ -71,7 +72,36 @@ class Parser:
             return self.memmov_statement()
         elif self.match(TokenType.BUTTON):
             return self.button_statement()
+        elif self.match(TokenType.LABEL):
+            return self.label_statement()
+        elif self.match(TokenType.CHANGE_LABEL_TEXT):
+            return self.change_label_text_statement()
         return self.expression_statement()
+
+    def change_label_text_statement(self) -> Stmt:
+        self.consume(TokenType.LEFT_PAREN, "Expect '(' after change label text call")
+        id = self.expression()
+        self.consume(TokenType.COMMA, "Expect ',' after change label text id")
+        text = self.expression()
+        self.consume(TokenType.RIGHT_PAREN, "Expect ')' after change label text body")
+        return ChangeLabelText(id, text)
+
+    def label_statement(self) -> Stmt:
+        self.consume(TokenType.LEFT_PAREN, "Expect '(' after label call")
+        text = self.expression()
+        self.consume(TokenType.COMMA, "Expect ',' after label text")
+        x = self.expression()
+        self.consume(TokenType.COMMA, "Expect ',' after label x")
+        y = self.expression()
+        self.consume(TokenType.COMMA, "Expect ',' after label y")
+        scale = self.expression()   
+        self.consume(TokenType.COMMA, "Expect ',' after label scale")
+        color = self.expression()
+        self.consume(TokenType.COMMA, "Expect ',' after label color")
+        id = self.expression()
+        self.consume(TokenType.RIGHT_PAREN, "Expect ')' after label body")
+        type = 1
+        return Label(type, text, x, y, scale, color, id)
 
     def peek2_statement(self) -> Stmt:
         print("here in peek2")
@@ -480,6 +510,11 @@ class Parser:
             addr = self.expression()
             self.consume(TokenType.RIGHT_PAREN, "Expect ')' after peek2 addr")
             return Peek2(addr)
+        if self.match(TokenType.STR):
+            self.consume(TokenType.LEFT_PAREN, "Expect '(' after str call")
+            text = self.expression()
+            self.consume(TokenType.RIGHT_PAREN, "Expect ')' after str text")
+            return Str(text)
         raise SyntaxError(f"Unexpected token {self.peek().lexeme}")
 
     def consume(self, type: TokenType, message: str) -> Token:

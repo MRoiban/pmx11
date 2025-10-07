@@ -1,6 +1,12 @@
-from pmxlang.scanner import Scanner
-from pmxlang.parser import Parser, AstPrinter, Expression
-from pmxlang.compiler import PMXCompiler
+if __package__ in (None, ""):
+    # Allow running this module as a script without installing the package
+    from scanner import Scanner
+    from parser import Parser, AstPrinter, Expression
+    from compiler import PMXCompiler
+else:
+    from .scanner import Scanner
+    from .parser import Parser, AstPrinter, Expression
+    from .compiler import PMXCompiler
 
 def run(source: str) -> None:
     # Stage 1: Lexical Analysis
@@ -27,7 +33,6 @@ def run(source: str) -> None:
         f.write("\n".join(asm))
 
 if __name__ == "__main__":
-#    argparse filename
     import argparse
     parser = argparse.ArgumentParser(description="PMX Compiler")
     parser.add_argument("filename", type=str, help="Input PMX file")

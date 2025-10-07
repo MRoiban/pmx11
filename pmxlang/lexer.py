@@ -57,6 +57,9 @@ class TokenType(Enum):
     MEMCPY = 52
     MEMMOV = 53
     BUTTON = 54
+    LABEL = 55
+    CHANGE_LABEL_TEXT = 56
+    STR = 57
     
     
 

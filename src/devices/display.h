@@ -48,4 +48,10 @@ void
 drawHexString(Uint8 hexString[], int length, int x, int y, int scale, Uint32 color);
 Uint8
 *str_to_hex_array(char *str, Uint8 *array);
+
+// Window access functions
+struct SDL_Window *get_sdl_window();
+void set_window_position(int x, int y);
+void get_window_position(int *x, int *y);
+
 #endif

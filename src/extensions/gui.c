@@ -10,6 +10,18 @@ init_array(InteractableArray *arr) {
     arr->capacity = 0;
 }
 
+
+void 
+change_interactable_text(int id, char *text) {
+    for (int i = 0; i < pmx_gui.interactables.count; i++) {
+        Interactable *interactable = &pmx_gui.interactables.data[i];
+        if (interactable->id == id) {
+            interactable->string.text = text;
+            interactable->string.size = strlen(text);
+        }
+    }
+}
+
 void
 push_array(InteractableArray *arr, Interactable item) {
     if (arr->count == arr->capacity) {
@@ -51,6 +63,12 @@ inArea(Interactable *interactable, int x, int y) {
            y >= interactable->y && y < interactable->y + interactable->height;
 }
 
+void
+drawLabel(Interactable *interactable) {
+    // drawRectFill(interactable->x, interactable->y, 5*(interactable->string.size+1), 5, 1, WHITE);
+    drawHexString(interactable->string.text, interactable->string.size, interactable->x, interactable->y, 1, BLACK);
+    // interactable->dirty = 0;
+}
 
 void
 drawButton(Interactable *interactable) {
@@ -60,6 +78,7 @@ drawButton(Interactable *interactable) {
         drawHexString(interactable->string.text, interactable->string.size, interactable->x + interactable->width / 4, interactable->y + interactable->height / 3 +2, 1, BLACK);
     }
     pmx_display.bool_update = 1;
+    // interactable->dirty = 0;
 }
 
 void
@@ -78,9 +97,13 @@ update_gui(PMX *pmx) {
                     }
                 }
             }
-            drawButton(interactable);
+                drawButton(interactable);
+            
             break;
         case LABEL:
+           
+                drawLabel(interactable);
+            
             break;
         case TEXT:
             break;
@@ -116,7 +139,8 @@ gui_deo(PMX *pmx, Uint32 addr) {
             .function_addr = function_addr,
             .type = (enum InteractableType)type,
             .id = id == 0 ? pmx_gui.interactables.count : id,
-            .string = {0}
+            .string = {0},
+            // .dirty = 1
         };
         
         if (size != 0) {
@@ -138,6 +162,29 @@ gui_deo(PMX *pmx, Uint32 addr) {
         
         // Register the fully populated interactable
         register_interactable(&interactable);
+        break;
+    }
+    // case 0x51: {
+    //     print("GUI: Unregistering interactable");
+    //     int id = PEEK2(0x100);
+    //     unregister_interactable(id);
+    //     break;
+    // }
+    // case 0x52: {
+    //     print("GUI: Updating interactable");
+    //     int id = PEEK2(0x100);
+    //     update_interactable(id);
+    //     break;
+    // }
+    case 0x53: {
+        print("GUI: Changing interactable text");
+        int id = PEEK2(0x100);
+        int size = PEEK2(0x101);
+        char *text = (char *)malloc(size * sizeof(char));
+        for (int i = 0; i < size; i++) {
+            text[i] = PEEK2(0x102 + i);
+        }
+        change_interactable_text(id, text);
         break;
     }
     default:

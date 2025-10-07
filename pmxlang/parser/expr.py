@@ -111,3 +111,10 @@ class Poke2(Expr):
 
     def accept(self, visitor: ExprVisitor) -> Any:
         return visitor.visit_poke2_expr(self)
+
+@dataclass
+class Str(Expr):
+    text: Expr
+
+    def accept(self, visitor: ExprVisitor) -> Any:
+        return visitor.visit_str_expr(self)

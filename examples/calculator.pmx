@@ -1,0 +1,145 @@
+import("examples/color.pmx")
+scale = 2
+width = 110*scale;height = 180*scale
+screen(1, width, height, white, 1)
+
+rect(15, 40, 190, 20*scale,1, black)
+
+buttons_x = 15; buttons_y = 100
+button_width = 20*scale; button_height = 20*scale
+button(buttons_x, buttons_y, button_width, button_height, 0x3000, 10010, "CLS");button(buttons_x, buttons_y + button_height + 10, button_width, button_height, 0x3000, 10007, "7");button(buttons_x, buttons_y + 2*button_height + 20, button_width, button_height, 0x3000, 10004, "4");button(buttons_x, buttons_y + 3*button_height + 30, button_width, button_height, 0x3000, 10001, "1")
+button(buttons_x, buttons_y + 4*button_height + 40, 3*(button_width)+20, button_height, 0x3000, 10000, "0")
+
+button(buttons_x + button_width + 10, buttons_y, button_width, button_height, 0x3000, 10011, "E")
+button(buttons_x + button_width + 10, buttons_y + button_height + 10, button_width, button_height, 0x3000, 10008, "8")
+button(buttons_x + button_width + 10, buttons_y + 2*button_height + 20, button_width, button_height, 0x3000, 10005, "5")
+button(buttons_x + button_width + 10, buttons_y + 3*button_height + 30, button_width, button_height, 0x3000, 10002, "2")
+
+button(buttons_x + (button_width + 10)*2, buttons_y, button_width, button_height, 0x3000, 10012, "EQ")
+button(buttons_x + (button_width + 10)*2, buttons_y + button_height + 10, button_width, button_height, 0x3000, 10009, "9")
+button(buttons_x + (button_width + 10)*2, buttons_y + 2*button_height + 20, button_width, button_height, 0x3000, 10006, "6")
+button(buttons_x + (button_width + 10)*2, buttons_y + 3*button_height + 30, button_width, button_height, 0x3000, 10003, "3")
+# button(buttons_x + (button_width + 10)*2, buttons_y + 4*button_height + 40, button_width, button_height, 0x3000, 10000, "c")
+
+button(buttons_x + (button_width + 10)*3, buttons_y, button_width, button_height, 0x3000, 10013, "mul")
+button(buttons_x + (button_width + 10)*3, buttons_y + button_height + 10, button_width, button_height*2+10, 0x3000, 10014, "sub")
+button(buttons_x + (button_width + 10)*3, buttons_y + 3*(button_height + 10), button_width, button_height*2+10, 0x3000, 10015, "add")
+
+
+label("0",180,50,1,black, 20000)
+rectfill(15, 40, 190, 20*scale,1, white)
+rect(15, 40, 190, 20*scale,1, black)
+label("2",180,50,1,black, 20000)
+index = 0
+a = 0
+b = 0
+result = 0
+while 1:
+   bID = peek2(0x5a);poke2(0x5a, 0)
+   if bID == 10001:
+      if index == 0:
+         a = 1
+      else:
+         b = 1
+      end
+      index = index + 1
+      print(1)
+    end
+   if bID == 10002:
+      if index == 0:
+         a = 2
+      else:
+         b = 2
+      end
+      index = index + 1
+      print(2)
+    end
+   if bID == 10003:
+      if index == 0:
+         a = 3
+      else:
+         b = 3
+      end
+      index = index + 1
+      print(3)
+    end
+   if bID == 10004:
+      if index == 0:
+         a = 4
+      else:
+         b = 4
+      end
+      index = index + 1
+      print(4)
+    end
+   if bID == 10005:
+      if index == 0:
+         a = 5
+      else:
+         b = 5
+      end
+      index = index + 1
+      print(5)
+    end
+    if bID == 10006:
+      if index == 0:
+         a = 6
+      else:
+         b = 6
+      end
+      index = index + 1
+      print(6)
+    end
+    if bID == 10007:
+      if index == 0:
+         a = 7
+      else:
+         b = 7
+      end
+      index = index + 1
+      print(7)
+    end
+    if bID == 10008:
+      if index == 0:
+         a = 8
+      else:
+         b = 8
+      end
+      index = index + 1
+      print(8)
+    end
+    if bID == 10009:
+      if index == 0:
+         a = 9  
+      else:
+         b = 9
+      end
+      index = index + 1
+      print(9)
+    end
+    if bID == 10010:
+      
+      end
+    if bID == 10011:
+      
+      end
+    if bID == 10012:
+      print(result)
+      a = result
+      index = 1
+      end
+    if bID == 10013:
+      
+      end
+    if bID == 10014:
+      
+      end
+    if bID == 10015:
+      print(10015)
+      result = a + b
+      index = 0
+      a = 0
+      b = 0
+      end
+end
+
