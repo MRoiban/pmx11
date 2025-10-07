@@ -350,6 +350,19 @@ void handle_device_writes(PMX *pmx) {
         
         POKE2(0x50, 0);      // Reset the trigger
     }
+    if (PEEK2(0x53) == 1) {  // GUI change label text
+        // Push an event with the device address
+        SDL_Event event;
+        PMXEventData *eventData = malloc(sizeof(PMXEventData));
+        eventData->deviceAddr = 0x53;  // GUI change label text address
+        
+        event.type = gui_event;
+        event.user.data1 = eventData;
+        event.user.code = 0;
+        SDL_PushEvent(&event);
+        
+        POKE2(0x53, 0);      // Reset the trigger
+    }
 }
 
 /**
@@ -435,9 +448,9 @@ emu_run(PMX *pmx) {
         pmx->time++;
         
         // If no more events, add a small delay to prevent 100% CPU usage
-        if (!SDL_PollEvent(NULL)) {
-            SDL_Delay(1);
-        }
+        // if (!SDL_PollEvent(NULL)) {
+        //     SDL_Delay(1);
+        // }
     }
     
     // Free all pending events to prevent memory leaks
